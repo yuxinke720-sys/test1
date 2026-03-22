@@ -19,7 +19,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             // Force full-screen background so ZStack never shrinks
-            Color(hex: "FFF9F0")
+            Color(hex: "F7F3ED")
                 .ignoresSafeArea()
 
             switch currentScreen {

@@ -31,7 +31,6 @@ enum TabBarItem: String {
     }
 }
 
-/// Shared tab bar used across all main views. Sticks to bottom with safe area coverage.
 func smTabBar(active: TabBarItem, currentScreen: Binding<AppScreen>) -> some View {
     HStack {
         ForEach([TabBarItem.home, .create, .myBooks, .profile], id: \.self) { item in
@@ -44,7 +43,7 @@ func smTabBar(active: TabBarItem, currentScreen: Binding<AppScreen>) -> some Vie
                     Text(item.emoji).font(.system(size: 22))
                     Text(item.label)
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(item == active ? .smYellow600 : .smNeutral300)
+                        .foregroundColor(item == active ? Color(hex: "C89F00") : Color(hex: "B8B3AC"))
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -53,7 +52,7 @@ func smTabBar(active: TabBarItem, currentScreen: Binding<AppScreen>) -> some Vie
     .padding(.top, 10)
     .padding(.bottom, 34)
     .background(
-        Color.white
+        Color(hex: "FFFFFF")
             .shadow(color: .black.opacity(0.05), radius: 1, y: -1)
             .ignoresSafeArea(edges: .bottom)
     )

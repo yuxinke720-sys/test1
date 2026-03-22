@@ -6,296 +6,187 @@ struct PhotoUploadView: View {
     @ObservedObject var photoVM: PhotoViewModel
     @Binding var currentScreen: AppScreen
 
-    @State private var showingImagePicker = false
-
     var body: some View {
-        VStack(spacing: 0) {
-            navBar
-            progressBar(step: 1, total: 2, fill: 0.5)
+        ZStack {
+            Color(hex: "F7F3ED").ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    privacyBanner
-                    titleSection
-                    tipsCard
-                    photoGrid
-                    photoCount
+            VStack(spacing: 0) {
+                navBar
+                progressBar(step: 1, total: 2, fill: 0.5)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        privacyBanner
+                        titleSection
+                        tipsCard
+                        photoGrid
+                        photoCount
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
-            }
 
-            bottomZone
+                bottomZone
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea(edges: .all))
         .onChange(of: photoVM.photosPickerItems) {
             Task { await photoVM.loadPhotos() }
         }
     }
 
-    // MARK: - Nav Bar
     private var navBar: some View {
         HStack {
-            Button {
-                currentScreen = .home
-            } label: {
-                Text("←")
-                    .font(.system(size: 22))
-                    .foregroundColor(.smCoral400)
-                    .frame(width: 36)
+            Button { currentScreen = .home } label: {
+                Text("←").font(.system(size: 22)).foregroundColor(Color(hex: "FF8C6B")).frame(width: 36)
             }
             Spacer()
-            Text("New Story")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundColor(.smTextPrimary)
+            Text("New Story").font(.system(size: 17, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
             Spacer()
             Color.clear.frame(width: 36)
         }
-        .frame(height: 48)
-        .padding(.horizontal, 18)
+        .frame(height: 48).padding(.horizontal, 18)
     }
 
-    // MARK: - Privacy Banner
     private var privacyBanner: some View {
         HStack(alignment: .top, spacing: 9) {
             Text("🔒").font(.system(size: 18))
             VStack(alignment: .leading, spacing: 2) {
-                Text("Your photos stay private")
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundColor(.smGreen600)
+                Text("Your photos stay private").font(.system(size: 11, weight: .bold)).foregroundColor(Color(hex: "2A8A40"))
                 Text("Used only to illustrate your story. Never stored, shared, or used to train AI.")
-                    .font(.system(size: 10))
-                    .foregroundColor(Color(hex: "3A8050"))
-                    .lineSpacing(2)
+                    .font(.system(size: 10)).foregroundColor(Color(hex: "3A8050")).lineSpacing(2)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.smGreen100)
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(hex: "C4EAC9"), lineWidth: 1)
-        )
-        .padding(.horizontal, 18)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .background(Color(hex: "E8F8EE")).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "C4EAC9"), lineWidth: 1))
+        .padding(.horizontal, 18).padding(.bottom, 12)
     }
 
-    // MARK: - Title
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("Add photos of \(storyVM.childName)")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.smTextPrimary)
-            Text("1–10 photos · Clear face shots work best")
-                .font(.system(size: 12))
-                .foregroundColor(.smTextSecondary)
+            Text("Add photos of \(storyVM.childName)").font(.system(size: 20, weight: .black)).foregroundColor(Color(hex: "1E1C1A"))
+            Text("1–10 photos · Clear face shots work best").font(.system(size: 12)).foregroundColor(Color(hex: "7A756E"))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 18)
-        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 18).padding(.bottom, 10)
     }
 
-    // MARK: - Tips Card
     private var tipsCard: some View {
         HStack {
-            tipItem(emoji: "😊", label: "Clear face")
-            Spacer()
-            tipItem(emoji: "☀️", label: "Good light")
-            Spacer()
-            tipItem(emoji: "🧍", label: "Natural pose")
-            Spacer()
+            tipItem(emoji: "😊", label: "Clear face"); Spacer()
+            tipItem(emoji: "☀️", label: "Good light"); Spacer()
+            tipItem(emoji: "🧍", label: "Natural pose"); Spacer()
             tipItem(emoji: "🕶️", label: "No sunglasses")
         }
-        .padding(10)
-        .background(Color.smYellow50)
-        .cornerRadius(12)
-        .padding(.horizontal, 18)
-        .padding(.bottom, 14)
+        .padding(10).background(Color(hex: "FFFEF5")).cornerRadius(12)
+        .padding(.horizontal, 18).padding(.bottom, 14)
     }
 
     private func tipItem(emoji: String, label: String) -> some View {
         VStack(spacing: 2) {
             Text(emoji).font(.system(size: 20))
-            Text(label)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundColor(.smYellow600)
+            Text(label).font(.system(size: 9, weight: .bold)).foregroundColor(Color(hex: "C89F00"))
         }
     }
 
-    // MARK: - Photo Grid
     private var photoGrid: some View {
         GeometryReader { geo in
             let spacing: CGFloat = 7
-            let columns: CGFloat = 3
-            let totalSpacing = spacing * (columns - 1)
-            let horizontalPadding: CGFloat = 18 * 2
-            let cellSize = (geo.size.width - horizontalPadding - totalSpacing) / columns
+            let hp: CGFloat = 36
+            let cellSize = (geo.size.width - hp - spacing * 2) / 3
 
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.fixed(cellSize), spacing: spacing), count: 3),
-                spacing: spacing
-            ) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(cellSize), spacing: spacing), count: 3), spacing: spacing) {
                 ForEach(Array(photoVM.selectedImages.enumerated()), id: \.offset) { index, image in
                     ZStack(alignment: .topTrailing) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: cellSize, height: cellSize)
-                            .clipped()
-                            .cornerRadius(11)
-
-                        Button {
-                            photoVM.removePhoto(at: index)
-                        } label: {
-                            Text("✕")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 22, height: 22)
-                                .background(Color.smRed400)
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
-                        }
-                        .padding(5)
+                        Image(uiImage: image).resizable().scaledToFill()
+                            .frame(width: cellSize, height: cellSize).clipped().cornerRadius(11)
+                        Button { photoVM.removePhoto(at: index) } label: {
+                            Text("✕").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                                .frame(width: 22, height: 22).background(Color(hex: "FF5252")).clipShape(Circle())
+                        }.padding(5)
                     }
                     .frame(width: cellSize, height: cellSize)
-                    .transition(.scale.combined(with: .opacity))
                 }
 
-                let totalVisible = max(6, photoVM.selectedImages.count + 1)
-                let emptyCells = max(0, min(photoVM.maxPhotos, totalVisible) - photoVM.selectedImages.count)
-                if emptyCells > 0 {
-                    ForEach(0..<emptyCells, id: \.self) { _ in
-                        PhotosPicker(
-                            selection: $photoVM.photosPickerItems,
-                            maxSelectionCount: photoVM.maxPhotos - photoVM.selectedImages.count,
-                            matching: .images
-                        ) {
+                let totalVis = max(6, photoVM.selectedImages.count + 1)
+                let empty = max(0, min(photoVM.maxPhotos, totalVis) - photoVM.selectedImages.count)
+                if empty > 0 {
+                    ForEach(0..<empty, id: \.self) { _ in
+                        PhotosPicker(selection: $photoVM.photosPickerItems,
+                                     maxSelectionCount: photoVM.maxPhotos - photoVM.selectedImages.count, matching: .images) {
                             RoundedRectangle(cornerRadius: 11)
-                                .strokeBorder(Color.smYellow300, style: StrokeStyle(lineWidth: 2, dash: [6]))
+                                .strokeBorder(Color(hex: "FFE94A"), style: StrokeStyle(lineWidth: 2, dash: [6]))
                                 .frame(width: cellSize, height: cellSize)
-                                .background(Color.smYellow50.cornerRadius(11))
-                                .overlay(
-                                    VStack(spacing: 3) {
-                                        Text("📷")
-                                            .font(.system(size: 20))
-                                            .foregroundColor(.smYellow300)
-                                        Text("Add")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .foregroundColor(.smYellow500)
-                                    }
-                                )
+                                .background(Color(hex: "FFFEF5").cornerRadius(11))
+                                .overlay(VStack(spacing: 3) {
+                                    Text("📷").font(.system(size: 20))
+                                    Text("Add").font(.system(size: 9, weight: .bold)).foregroundColor(Color(hex: "F5C800"))
+                                })
                         }
                     }
                 }
             }
             .padding(.horizontal, 18)
         }
-        .frame(height: photoGridHeight)
+        .frame(height: gridHeight)
         .animation(.spring(response: 0.3), value: photoVM.selectedImages.count)
     }
 
-    private var photoGridHeight: CGFloat {
-        let totalVisible = max(6, photoVM.selectedImages.count + 1)
-        let cellCount = min(photoVM.maxPhotos, totalVisible)
-        let rows = ceil(Double(cellCount) / 3.0)
-        return CGFloat(rows) * 117 + 10
+    private var gridHeight: CGFloat {
+        let total = max(6, photoVM.selectedImages.count + 1)
+        let count = min(photoVM.maxPhotos, total)
+        return CGFloat(ceil(Double(count) / 3.0)) * 117 + 10
     }
 
-    // MARK: - Photo Count
     private var photoCount: some View {
         HStack(spacing: 4) {
-            Text(photoVM.photoCountText)
-                .font(.system(size: 11))
-                .foregroundColor(.smTextSecondary)
-            Text("·")
-                .foregroundColor(.smTextSecondary)
-            Text(photoVM.statusText)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(photoVM.canContinue ? .smGreen600 : .smCoral400)
-        }
-        .padding(.vertical, 10)
+            Text(photoVM.photoCountText).font(.system(size: 11)).foregroundColor(Color(hex: "7A756E"))
+            Text("·").foregroundColor(Color(hex: "7A756E"))
+            Text(photoVM.statusText).font(.system(size: 11, weight: .bold))
+                .foregroundColor(photoVM.canContinue ? Color(hex: "2A8A40") : Color(hex: "FF8C6B"))
+        }.padding(.vertical, 10)
     }
 
-    // MARK: - Bottom Zone
     private var bottomZone: some View {
         VStack(spacing: 7) {
             Button {
-                Task {
-                    await photoVM.analyzePhotos()
-                    currentScreen = .storySetup
-                }
+                Task { await photoVM.analyzePhotos(); currentScreen = .storySetup }
             } label: {
                 HStack(spacing: 6) {
-                    if photoVM.isAnalyzing {
-                        ProgressView()
-                            .tint(.white)
-                            .scaleEffect(0.8)
-                        Text("Analyzing…")
-                    } else {
-                        Text("Analyze & Continue →")
-                    }
+                    if photoVM.isAnalyzing { ProgressView().tint(.white).scaleEffect(0.8); Text("Analyzing…") }
+                    else { Text("Analyze & Continue →") }
                 }
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(
-                    LinearGradient(
-                        colors: [.smCoral400, .smCoral500],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                .frame(maxWidth: .infinity).frame(height: 50)
+                .background(LinearGradient(colors: [Color(hex: "FF8C6B"), Color(hex: "E86D4A")], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .clipShape(Capsule())
-                .shadow(color: .smCoral400.opacity(0.35), radius: 10, y: 4)
+                .shadow(color: Color(hex: "FF8C6B").opacity(0.35), radius: 10, y: 4)
             }
             .disabled(!photoVM.canContinue || photoVM.isAnalyzing)
             .opacity(photoVM.canContinue ? 1 : 0.4)
 
             Text("Photos deleted from our servers after generation")
-                .font(.system(size: 10))
-                .foregroundColor(.smNeutral300)
+                .font(.system(size: 10)).foregroundColor(Color(hex: "B8B3AC"))
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 12)
-        .padding(.bottom, 34)
+        .padding(.horizontal, 18).padding(.top, 12).padding(.bottom, 34)
     }
 }
 
-// MARK: - Shared progress bar component
 func progressBar(step: Int, total: Int, fill: Double) -> some View {
     VStack(alignment: .trailing, spacing: 4) {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 5).fill(Color(hex: "E0DBD4"))
                 RoundedRectangle(cornerRadius: 5)
-                    .fill(Color.smNeutral200)
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(
-                        LinearGradient(
-                            colors: [.smYellow400, .smYellow300],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .fill(LinearGradient(colors: [Color(hex: "FFD93D"), Color(hex: "FFE94A")], startPoint: .leading, endPoint: .trailing))
                     .frame(width: geo.size.width * fill)
                     .animation(.easeInOut(duration: 0.4), value: fill)
             }
-        }
-        .frame(height: 5)
-
-        Text("Step \(step) of \(total)")
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundColor(.smTextSecondary)
+        }.frame(height: 5)
+        Text("Step \(step) of \(total)").font(.system(size: 10, weight: .regular)).foregroundColor(Color(hex: "7A756E"))
     }
-    .padding(.horizontal, 18)
-    .padding(.bottom, 10)
+    .padding(.horizontal, 18).padding(.bottom, 10)
 }
 
-#Preview {
-    PhotoUploadView(
-        storyVM: StoryViewModel(),
-        photoVM: PhotoViewModel(),
-        currentScreen: .constant(.photoUpload)
-    )
+#Preview("PhotoUpload") {
+    PhotoUploadView(storyVM: StoryViewModel(), photoVM: PhotoViewModel(), currentScreen: .constant(.photoUpload))
+        .previewDevice("iPhone 15 Pro")
 }
