@@ -37,7 +37,7 @@ struct StorySetupView: View {
             }
             Spacer()
             Text("New Story")
-                .font(.custom("Nunito-ExtraBold", size: 17))
+                .font(.system(size: 17, weight: .heavy))
                 .foregroundColor(.smTextPrimary)
             Spacer()
             Color.clear.frame(width: 36)
@@ -64,7 +64,7 @@ struct StorySetupView: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Meet your story hero! 👋")
-                        .font(.custom("Nunito-ExtraBold", size: 13))
+                        .font(.system(size: 13, weight: .heavy))
                         .foregroundColor(.smTextPrimary)
                     Text("Based on your photos")
                         .font(.system(size: 10))
@@ -108,7 +108,7 @@ struct StorySetupView: View {
     private var themeSection: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text("What's the story about?")
-                .font(.custom("Nunito-ExtraBold", size: 15))
+                .font(.system(size: 15, weight: .heavy))
                 .foregroundColor(.smTextPrimary)
 
             Text("Type a theme or pick one below")
@@ -167,7 +167,7 @@ struct StorySetupView: View {
     private var styleSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Story vibe")
-                .font(.custom("Nunito-ExtraBold", size: 15))
+                .font(.system(size: 15, weight: .heavy))
                 .foregroundColor(.smTextPrimary)
                 .padding(.horizontal, 18)
 
@@ -203,7 +203,7 @@ struct StorySetupView: View {
     private var pageCountSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("How many pages?")
-                .font(.custom("Nunito-ExtraBold", size: 15))
+                .font(.system(size: 15, weight: .heavy))
                 .foregroundColor(.smTextPrimary)
                 .padding(.horizontal, 18)
 
@@ -248,7 +248,7 @@ struct StorySetupView: View {
                 }
             } label: {
                 Text("✨ Generate My Story")
-                    .font(.custom("Nunito-ExtraBold", size: 15))
+                    .font(.system(size: 15, weight: .heavy))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)

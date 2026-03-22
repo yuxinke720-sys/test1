@@ -26,7 +26,7 @@ struct HomeView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Good morning \u{1F44B}")
-                    .font(.custom("Nunito-Black", size: 18))
+                    .font(.system(size: 18, weight: .black))
                     .foregroundColor(.smTextPrimary)
                 Text("What story shall we create?")
                     .font(.system(size: 12))
@@ -77,7 +77,7 @@ struct HomeView: View {
                     .foregroundColor(.smTextPrimary.opacity(0.6))
 
                 Text("A new story\nfor little \(storyVM.childName)")
-                    .font(.custom("Nunito-Black", size: 22))
+                    .font(.system(size: 22, weight: .black))
                     .foregroundColor(.smTextPrimary)
                     .lineSpacing(2)
 
@@ -88,7 +88,7 @@ struct HomeView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Text("Create Now")
-                            .font(.custom("Nunito-ExtraBold", size: 13))
+                            .font(.system(size: 13, weight: .heavy))
                         Text("→")
                     }
                     .foregroundColor(.smCoral500)
@@ -303,7 +303,7 @@ struct HomeView: View {
     private func sectionHeader(title: String, action: String? = nil) -> some View {
         HStack {
             Text(title)
-                .font(.custom("Nunito-ExtraBold", size: 16))
+                .font(.system(size: 16, weight: .heavy))
                 .foregroundColor(.smTextPrimary)
             Spacer()
             if let action {

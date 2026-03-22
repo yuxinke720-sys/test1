@@ -23,7 +23,7 @@ struct MyBooksView: View {
                 }
                 Spacer()
                 Text("My Books")
-                    .font(.custom("Nunito-ExtraBold", size: 17))
+                    .font(.system(size: 17, weight: .heavy))
                     .foregroundColor(.smTextPrimary)
                 Spacer()
                 Color.clear.frame(width: 36)
@@ -85,7 +85,7 @@ struct MyBooksView: View {
     private func statBadge(value: String, label: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.custom("Nunito-Black", size: 22))
+                .font(.system(size: 22, weight: .black))
                 .foregroundColor(.smTextPrimary)
             Text(label)
                 .font(.system(size: 11, weight: .semibold))
@@ -164,7 +164,7 @@ struct MyBooksView: View {
                 .font(.system(size: 72))
 
             Text("No stories yet")
-                .font(.custom("Nunito-Black", size: 22))
+                .font(.system(size: 22, weight: .black))
                 .foregroundColor(.smTextPrimary)
 
             Text("Create your first story and it\nwill appear here!")
@@ -177,7 +177,7 @@ struct MyBooksView: View {
                 currentScreen = .photoUpload
             } label: {
                 Text("Create a Story ✨")
-                    .font(.custom("Nunito-ExtraBold", size: 15))
+                    .font(.system(size: 15, weight: .heavy))
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
                     .frame(height: 50)

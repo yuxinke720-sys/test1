@@ -36,7 +36,7 @@ struct LoadingView: View {
                 // Stage text
                 VStack(spacing: 4) {
                     Text("\(storyVM.generationStage.label) \(storyVM.generationStage.icon)")
-                        .font(.custom("Nunito-Black", size: 18))
+                        .font(.system(size: 18, weight: .black))
                         .foregroundColor(.smTextPrimary)
 
                     Text("Creating illustrations for \(storyVM.childName)")

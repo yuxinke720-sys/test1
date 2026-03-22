@@ -15,7 +15,7 @@ struct ShareView: View {
             // Title
             if let story = storyVM.currentStory {
                 Text("Share \(story.childName)'s Story")
-                    .font(.custom("Nunito-Black", size: 20))
+                    .font(.system(size: 20, weight: .black))
                     .foregroundColor(.smTextPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
@@ -159,7 +159,7 @@ struct ShareView: View {
                         Text("Save to Camera Roll")
                     }
                 }
-                .font(.custom("Nunito-ExtraBold", size: 15))
+                .font(.system(size: 15, weight: .heavy))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)

@@ -4,141 +4,91 @@ struct ProfileView: View {
     @ObservedObject var storyVM: StoryViewModel
     @Binding var currentScreen: AppScreen
 
-    // Track scroll offset for collapsing header
-    @State private var scrollOffset: CGFloat = 0
-
-    // Header geometry
-    private let headerExpandedHeight: CGFloat = 260
-    private let headerCollapsedHeight: CGFloat = 96
-
-    /// 0 = fully expanded, 1 = fully collapsed
-    private var collapseProgress: CGFloat {
-        let raw = -scrollOffset / (headerExpandedHeight - headerCollapsedHeight)
-        return min(max(raw, 0), 1)
-    }
-
-    private var headerHeight: CGFloat {
-        max(headerCollapsedHeight, headerExpandedHeight + scrollOffset)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
-            ZStack(alignment: .top) {
-                // Background that extends behind both header and scroll content
-                Color.smBackground.ignoresSafeArea()
+            // Profile header
+            profileHeader
 
-                // The collapsing header (pinned to top)
-                profileHeader
-                    .zIndex(1)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 14) {
+                    // Children section
+                    childrenSection
 
-                // Scrollable content pushed below the header
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        // Invisible spacer to push content below expanded header
-                        Color.clear
-                            .frame(height: headerExpandedHeight)
+                    // Settings sections
+                    settingsSection(title: "APP", rows: [
+                        SettingsRow(icon: "🔔", label: "Notifications", iconBg: .smYellow100),
+                        SettingsRow(icon: "🎨", label: "Story Preferences", iconBg: .smCoral100),
+                        SettingsRow(icon: "🌐", label: "Language", value: "English", iconBg: .smBlue100),
+                    ])
 
-                        // Actual scrollable content
-                        VStack(spacing: 14) {
-                            childrenSection
-                                .padding(.top, 12)
+                    settingsSection(title: "ACCOUNT", rows: [
+                        SettingsRow(icon: "🔒", label: "Privacy & Data", iconBg: .smGreen100),
+                        SettingsRow(icon: "📧", label: "Email", value: "emma@mom.com", iconBg: .smBlue100),
+                        SettingsRow(icon: "⭐", label: "Rate StoryMe", iconBg: .smYellow100),
+                        SettingsRow(icon: "❓", label: "Help & Support", iconBg: .smNeutral100),
+                    ])
 
-                            settingsSection(title: "APP", rows: [
-                                SettingsRow(icon: "🔔", label: "Notifications", iconBg: .smYellow100),
-                                SettingsRow(icon: "🎨", label: "Story Preferences", iconBg: .smCoral100),
-                                SettingsRow(icon: "🌐", label: "Language", value: "English", iconBg: .smBlue100),
-                            ])
+                    settingsSection(title: "", rows: [
+                        SettingsRow(icon: "🚪", label: "Sign Out", isDestructive: true, iconBg: .smRed100),
+                    ])
 
-                            settingsSection(title: "ACCOUNT", rows: [
-                                SettingsRow(icon: "🔒", label: "Privacy & Data", iconBg: .smGreen100),
-                                SettingsRow(icon: "📧", label: "Email", value: "emma@mom.com", iconBg: .smBlue100),
-                                SettingsRow(icon: "⭐", label: "Rate StoryMe", iconBg: .smYellow100),
-                                SettingsRow(icon: "❓", label: "Help & Support", iconBg: .smNeutral100),
-                            ])
-
-                            settingsSection(title: "", rows: [
-                                SettingsRow(icon: "🚪", label: "Sign Out", isDestructive: true, iconBg: .smRed100),
-                            ])
-
-                            Text("StoryMe v1.0.0")
-                                .font(.system(size: 11))
-                                .foregroundColor(.smNeutral300)
-                                .padding(.top, 8)
-                                .padding(.bottom, 20)
-                        }
-                        .background(
-                            // Read scroll offset
-                            GeometryReader { geo in
-                                Color.clear.preference(
-                                    key: ScrollOffsetKey.self,
-                                    value: geo.frame(in: .named("profileScroll")).minY - headerExpandedHeight
-                                )
-                            }
-                        )
-                    }
-                }
-                .coordinateSpace(name: "profileScroll")
-                .onPreferenceChange(ScrollOffsetKey.self) { value in
-                    scrollOffset = value
+                    // App version
+                    Text("StoryMe v1.0.0")
+                        .font(.system(size: 11))
+                        .foregroundColor(.smNeutral300)
+                        .padding(.top, 8)
+                        .padding(.bottom, 20)
                 }
             }
 
             tabBar
         }
+        .background(Color.smBackground)
     }
 
-    // MARK: - Collapsing Profile Header
+    // MARK: - Profile Header
     private var profileHeader: some View {
-        ZStack(alignment: .top) {
-            // Shared gradient background — stretches with header
+        ZStack {
             LinearGradient(
-                colors: [.smYellow400, .smYellow300, .smYellow200],
+                colors: [.smYellow400, .smYellow300],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .frame(height: headerHeight)
-            .clipped()
 
-            // Decorative sparkles (fade out as header collapses)
+            // Decorative
             HStack {
-                Text("✦")
-                    .font(.system(size: 48))
-                    .foregroundColor(.smTextPrimary.opacity(0.08))
-                    .offset(x: 30, y: 70)
                 Spacer()
                 Text("✦")
-                    .font(.system(size: 28))
-                    .foregroundColor(.smTextPrimary.opacity(0.06))
-                    .offset(x: -24, y: 50)
+                    .font(.system(size: 40))
+                    .foregroundColor(.smTextPrimary.opacity(0.15))
+                    .offset(x: -20, y: -10)
             }
-            .opacity(1 - collapseProgress)
-            .animation(.easeOut(duration: 0.4), value: collapseProgress)
 
-            // EXPANDED layout — avatar, name, badge (fades out)
             VStack(spacing: 0) {
-                Spacer().frame(height: 60)
+                Spacer().frame(height: 56)
 
                 // Avatar
                 Circle()
                     .fill(Color.white)
                     .frame(width: 72, height: 72)
                     .overlay(Text("👩").font(.system(size: 36)))
-                    .shadow(color: .smYellow500.opacity(0.35), radius: 12, y: 4)
+                    .shadow(color: .smYellow400.opacity(0.5), radius: 10, y: 4)
 
                 Spacer().frame(height: 12)
 
                 Text("Emma's Mom")
-                    .font(.custom("Nunito-Black", size: 20))
+                    .font(.system(size: 20, weight: .black))
                     .foregroundColor(.smTextPrimary)
 
-                Text("\(max(storyVM.savedStories.count, 3)) stories created")
+                Text("3 stories created")
                     .font(.system(size: 12))
                     .foregroundColor(.smTextPrimary.opacity(0.6))
                     .padding(.top, 3)
 
                 // Subscription badge
                 HStack(spacing: 5) {
-                    Text("⭐").font(.system(size: 11))
+                    Text("⭐")
+                        .font(.system(size: 11))
                     Text("Free Plan")
                         .font(.system(size: 11, weight: .heavy))
                         .foregroundColor(.smYellow600)
@@ -149,36 +99,11 @@ struct ProfileView: View {
                 .clipShape(Capsule())
                 .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
                 .padding(.top, 10)
+
+                Spacer().frame(height: 20)
             }
-            .frame(height: headerExpandedHeight)
-            .opacity(Double(1.0 - collapseProgress * 1.5))   // fades out faster than collapse
-            .animation(.easeOut(duration: 0.5), value: collapseProgress)
-
-            // COLLAPSED layout — compact bar (fades in)
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 36, height: 36)
-                    .overlay(Text("👩").font(.system(size: 18)))
-                    .shadow(color: .smYellow500.opacity(0.2), radius: 4, y: 2)
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Emma's Mom")
-                        .font(.custom("Nunito-ExtraBold", size: 15))
-                        .foregroundColor(.smTextPrimary)
-                    Text("Free Plan")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.smYellow600)
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 52)
-            .opacity(collapseProgress > 0.6 ? (collapseProgress - 0.6) / 0.4 : 0)
-            .animation(.easeOut(duration: 0.4), value: collapseProgress)
         }
-        .frame(height: headerHeight)
+        .frame(height: 240)
     }
 
     // MARK: - Children Section
@@ -196,6 +121,7 @@ struct ProfileView: View {
             }
             .padding(.horizontal, 20)
 
+            // Child card
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
@@ -209,6 +135,7 @@ struct ProfileView: View {
                         .frame(width: 50, height: 50)
                         .overlay(Text("👧").font(.system(size: 24)))
 
+                    // Active ring
                     Circle()
                         .stroke(Color.smYellow400, lineWidth: 3)
                         .frame(width: 56, height: 56)
@@ -216,7 +143,7 @@ struct ProfileView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(storyVM.childName)
-                        .font(.custom("Nunito-ExtraBold", size: 15))
+                        .font(.system(size: 15, weight: .heavy))
                         .foregroundColor(.smTextPrimary)
                     Text("Age 4 · \(storyVM.savedStories.count) stories")
                         .font(.system(size: 11))
@@ -235,9 +162,10 @@ struct ProfileView: View {
             .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
             .padding(.horizontal, 18)
         }
+        .padding(.top, 8)
     }
 
-    // MARK: - Settings
+    // MARK: - Settings Section
     private struct SettingsRow: Identifiable {
         let id = UUID()
         let icon: String
@@ -328,14 +256,6 @@ struct ProfileView: View {
             }
             .frame(maxWidth: .infinity)
         }
-    }
-}
-
-// MARK: - Scroll Offset Preference Key
-private struct ScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
 

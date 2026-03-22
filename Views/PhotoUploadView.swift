@@ -47,7 +47,7 @@ struct PhotoUploadView: View {
             }
             Spacer()
             Text("New Story")
-                .font(.custom("Nunito-ExtraBold", size: 17))
+                .font(.system(size: 17, weight: .heavy))
                 .foregroundColor(.smTextPrimary)
             Spacer()
             Color.clear.frame(width: 36)
@@ -86,7 +86,7 @@ struct PhotoUploadView: View {
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text("Add photos of \(storyVM.childName)")
-                .font(.custom("Nunito-Black", size: 20))
+                .font(.system(size: 20, weight: .black))
                 .foregroundColor(.smTextPrimary)
             Text("1–10 photos · Clear face shots work best")
                 .font(.system(size: 12))
@@ -242,7 +242,7 @@ struct PhotoUploadView: View {
                         Text("Analyze & Continue →")
                     }
                 }
-                .font(.custom("Nunito-ExtraBold", size: 15))
+                .font(.system(size: 15, weight: .heavy))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)

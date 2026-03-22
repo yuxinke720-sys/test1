@@ -7,50 +7,28 @@ struct StorybookView: View {
     @State private var showOverlay = true
     @State private var showCompletion = false
     @State private var dragOffset: CGFloat = 0
-    @State private var particlePhase: CGFloat = 0
-
-    // Palette per page — cycles through moods
-    private let pagePalettes: [(top: String, bottom: String, accent: String)] = [
-        ("1A1042", "0D0C18", "FFD93D"),   // deep indigo / yellow
-        ("0C2340", "0A1628", "4D96FF"),   // navy / blue
-        ("2D1B3D", "1A0F26", "E8A0FF"),   // plum / lavender
-        ("0B2B26", "061A16", "6BCB77"),   // forest / green
-        ("3B1A0A", "1E0D05", "FF8C6B"),   // warm umber / coral
-        ("1A1042", "0D0C18", "FFD93D"),
-        ("0C2340", "0A1628", "4D96FF"),
-        ("2D1B3D", "1A0F26", "E8A0FF"),
-        ("0B2B26", "061A16", "6BCB77"),
-        ("3B1A0A", "1E0D05", "FF8C6B"),
-        ("1A1042", "0D0C18", "FFD93D"),
-        ("0C2340", "0A1628", "4D96FF"),
-    ]
-
-    private var currentPalette: (top: String, bottom: String, accent: String) {
-        pagePalettes[storyVM.currentPage % pagePalettes.count]
-    }
 
     var body: some View {
         ZStack {
-            // Animated background that shifts per page
-            LinearGradient(
-                colors: [Color(hex: currentPalette.top), Color(hex: currentPalette.bottom)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            .animation(.easeInOut(duration: 0.8), value: storyVM.currentPage)
+            // Background
+            Color(hex: "0D0C18")
+                .ignoresSafeArea()
 
             if let story = storyVM.currentStory {
+                // Book content
                 ZStack {
+                    // Illustration zone
                     pageContent(story: story)
 
-                    // Tap zones
+                    // Tap zones for navigation
                     HStack(spacing: 0) {
+                        // Left tap = previous
                         Color.clear
                             .contentShape(Rectangle())
                             .onTapGesture { storyVM.previousPage() }
                             .frame(maxWidth: .infinity)
 
+                        // Center = toggle overlay
                         Color.clear
                             .contentShape(Rectangle())
                             .onTapGesture {
@@ -60,11 +38,12 @@ struct StorybookView: View {
                             }
                             .frame(width: UIScreen.main.bounds.width * 0.2)
 
+                        // Right tap = next
                         Color.clear
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 if storyVM.currentPage >= story.pages.count - 1 {
-                                    withAnimation(.spring(response: 0.5)) { showCompletion = true }
+                                    withAnimation { showCompletion = true }
                                 } else {
                                     storyVM.nextPage()
                                 }
@@ -73,11 +52,13 @@ struct StorybookView: View {
                     }
                     .gesture(
                         DragGesture()
-                            .onChanged { value in dragOffset = value.translation.width }
+                            .onChanged { value in
+                                dragOffset = value.translation.width
+                            }
                             .onEnded { value in
                                 if value.translation.width < -50 {
                                     if storyVM.currentPage >= story.pages.count - 1 {
-                                        withAnimation(.spring(response: 0.5)) { showCompletion = true }
+                                        withAnimation { showCompletion = true }
                                     } else {
                                         storyVM.nextPage()
                                     }
@@ -99,6 +80,7 @@ struct StorybookView: View {
                     }
                 }
 
+                // Completion overlay
                 if showCompletion {
                     completionOverlay(story: story)
                         .transition(.opacity)
@@ -106,6 +88,7 @@ struct StorybookView: View {
             }
         }
         .onAppear {
+            // Auto-hide overlay after 3 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 withAnimation { showOverlay = false }
             }
@@ -115,61 +98,43 @@ struct StorybookView: View {
     // MARK: - Page Content
     private func pageContent(story: Story) -> some View {
         VStack(spacing: 0) {
-            // Illustration zone
+            // Illustration area
             ZStack {
-                // Ambient glow behind emoji
+                LinearGradient(
+                    colors: [Color(hex: "1A1042"), Color(hex: "0D0C18")],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
                 if storyVM.currentPage < story.pages.count {
-                    let accent = Color(hex: currentPalette.accent)
-                    Circle()
-                        .fill(accent.opacity(0.12))
-                        .frame(width: 240, height: 240)
-                        .blur(radius: 60)
-                        .animation(.easeInOut(duration: 0.8), value: storyVM.currentPage)
-
-                    // Floating sparkle particles
-                    ForEach(0..<6, id: \.self) { i in
-                        Circle()
-                            .fill(accent.opacity(Double.random(in: 0.15...0.35)))
-                            .frame(width: CGFloat.random(in: 3...7))
-                            .offset(
-                                x: CGFloat.random(in: -120...120),
-                                y: CGFloat.random(in: -100...80)
-                            )
-                            .blur(radius: 1)
-                    }
-
                     let page = story.pages[storyVM.currentPage]
                     Text(page.emoji)
-                        .font(.system(size: 100))
-                        .shadow(color: Color(hex: currentPalette.accent).opacity(0.4), radius: 30, y: 10)
-                        .id(storyVM.currentPage)
+                        .font(.system(size: 90))
                         .transition(.asymmetric(
-                            insertion: .scale(scale: 0.7).combined(with: .opacity),
-                            removal: .scale(scale: 1.2).combined(with: .opacity)
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
                         ))
-                        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: storyVM.currentPage)
+                        .id(storyVM.currentPage)
                 }
 
                 // First-time tap hints
                 if showOverlay && storyVM.currentPage == 0 {
-                    VStack {
+                    HStack {
+                        tapHint(direction: "◀", label: "Prev")
                         Spacer()
-                        HStack {
-                            tapHint(direction: "chevron.left", label: "Prev")
-                            Spacer()
+                        VStack {
                             Text("Tap to turn pages")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.5))
+                                .foregroundColor(.white.opacity(0.6))
                                 .padding(.horizontal, 14)
-                                .padding(.vertical, 6)
-                                .background(.ultraThinMaterial)
+                                .padding(.vertical, 5)
+                                .background(Color.white.opacity(0.15))
                                 .clipShape(Capsule())
-                            Spacer()
-                            tapHint(direction: "chevron.right", label: "Next")
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 16)
+                        Spacer()
+                        tapHint(direction: "▶", label: "Next")
                     }
+                    .padding(.horizontal, 20)
                 }
             }
             .frame(maxHeight: .infinity)
@@ -177,42 +142,32 @@ struct StorybookView: View {
             // Text zone
             if storyVM.currentPage < story.pages.count {
                 let page = story.pages[storyVM.currentPage]
-                let accent = Color(hex: currentPalette.accent)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    // Page badge
-                    HStack(spacing: 6) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(accent.opacity(0.6))
-                            .frame(width: 12, height: 3)
-                        Text("Page \(page.pageNumber) of \(story.pages.count)")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white.opacity(0.4))
-                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Page \(page.pageNumber) of \(story.pages.count)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white.opacity(0.4))
 
                     Text(page.text)
-                        .font(.custom("Nunito-Bold", size: 16))
-                        .foregroundColor(.white.opacity(0.92))
-                        .lineSpacing(8)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineSpacing(6)
                         .id(storyVM.currentPage)
-                        .transition(.push(from: .trailing))
-                        .animation(.easeInOut(duration: 0.4), value: storyVM.currentPage)
+                        .transition(.opacity)
                 }
-                .padding(.horizontal, 22)
-                .padding(.top, 24)
-                .padding(.bottom, 16)
+                .padding(.horizontal, 18)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     LinearGradient(
                         colors: [
-                            Color(hex: currentPalette.bottom),
-                            Color(hex: currentPalette.bottom).opacity(0.85),
+                            Color(hex: "0D0C18").opacity(0.96),
+                            Color(hex: "0D0C18").opacity(0.7),
                             .clear,
                         ],
                         startPoint: .bottom,
                         endPoint: .top
                     )
-                    .animation(.easeInOut(duration: 0.8), value: storyVM.currentPage)
                 )
             }
         }
@@ -220,13 +175,14 @@ struct StorybookView: View {
 
     private func tapHint(direction: String, label: String) -> some View {
         VStack(spacing: 4) {
-            Image(systemName: direction)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white.opacity(0.45))
+            Text(direction)
+                .font(.system(size: 22))
+                .foregroundColor(.white.opacity(0.5))
             Text(label)
                 .font(.system(size: 9))
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(.white.opacity(0.35))
         }
+        .opacity(0.7)
     }
 
     // MARK: - Top Bar
@@ -236,37 +192,32 @@ struct StorybookView: View {
                 currentScreen = .home
                 storyVM.saveStory()
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .bold))
+                Text("✕")
+                    .font(.system(size: 16))
                     .foregroundColor(.white)
-                    .frame(width: 34, height: 34)
-                    .background(.ultraThinMaterial)
+                    .frame(width: 32, height: 32)
+                    .background(Color.white.opacity(0.15))
                     .clipShape(Circle())
             }
 
             Spacer()
 
             Text(story.title)
-                .font(.custom("Nunito-ExtraBold", size: 14))
-                .foregroundColor(.white.opacity(0.9))
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundColor(.white)
 
             Spacer()
 
-            Button {} label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white.opacity(0.7))
-                    .frame(width: 34, height: 34)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
-            }
+            Text("···")
+                .font(.system(size: 18))
+                .foregroundColor(.white.opacity(0.7))
         }
         .padding(.horizontal, 16)
-        .padding(.top, 54)
-        .padding(.bottom, 16)
+        .padding(.top, 50)
+        .padding(.bottom, 12)
         .background(
             LinearGradient(
-                colors: [Color(hex: currentPalette.top).opacity(0.9), .clear],
+                colors: [Color(hex: "0D0C18").opacity(0.85), .clear],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -275,144 +226,114 @@ struct StorybookView: View {
 
     // MARK: - Bottom Bar
     private func bottomBar(story: Story) -> some View {
-        VStack(spacing: 12) {
-            // Progress bar (replaces dots for cleaner look)
-            HStack(spacing: 4) {
+        VStack(spacing: 10) {
+            // Progress dots
+            HStack(spacing: 5) {
                 ForEach(0..<story.pages.count, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(i <= storyVM.currentPage
-                              ? Color(hex: currentPalette.accent)
-                              : Color.white.opacity(0.15))
-                        .frame(height: 3)
-                        .animation(.easeInOut(duration: 0.3), value: storyVM.currentPage)
+                    if i == storyVM.currentPage {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.smYellow400)
+                            .frame(width: 18, height: 6)
+                    } else {
+                        Circle()
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 6, height: 6)
+                    }
                 }
             }
-            .padding(.horizontal, 4)
 
-            // Actions
-            HStack(spacing: 0) {
-                readerAction(
-                    sfIcon: storyVM.currentStory?.isFavorite == true ? "heart.fill" : "heart",
-                    label: "Save",
-                    tint: storyVM.currentStory?.isFavorite == true ? .smCoral400 : .white
-                ) {
-                    withAnimation(.spring(response: 0.3)) { storyVM.toggleFavorite() }
+            // Action buttons
+            HStack(spacing: 24) {
+                readerAction(icon: storyVM.currentStory?.isFavorite == true ? "♥" : "♡", label: "Save") {
+                    storyVM.toggleFavorite()
                 }
-                readerAction(sfIcon: "square.and.arrow.up", label: "Share", tint: .white) {
+                readerAction(icon: "↗", label: "Share") {
                     currentScreen = .share
                 }
-                readerAction(sfIcon: "speaker.wave.2", label: "Read", tint: .white) {}
-                readerAction(sfIcon: "arrow.clockwise", label: "Redo", tint: .white) {}
+                readerAction(icon: "🔊", label: "Read") {}
+                readerAction(icon: "⟳", label: "Redo") {}
             }
         }
         .padding(.horizontal, 18)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
-        .background(.ultraThinMaterial)
+        .padding(.vertical, 14)
+        .background(Color(hex: "0D0C18").opacity(0.9))
     }
 
-    private func readerAction(sfIcon: String, label: String, tint: Color, action: @escaping () -> Void) -> some View {
+    private func readerAction(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: sfIcon)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(tint.opacity(0.85))
+            VStack(spacing: 2) {
+                Text(icon).font(.system(size: 20))
                 Text(label)
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 8))
                     .foregroundColor(.white.opacity(0.4))
             }
-            .frame(maxWidth: .infinity)
         }
     }
 
     // MARK: - Completion Overlay
     private func completionOverlay(story: Story) -> some View {
         ZStack {
-            // Blurred dark bg
-            Color.black.opacity(0.75)
+            Color.black.opacity(0.7)
                 .ignoresSafeArea()
-                .background(.ultraThinMaterial)
 
-            VStack(spacing: 20) {
-                Spacer()
-
-                // Animated sparkles
-                ZStack {
-                    ForEach(0..<8, id: \.self) { i in
-                        Text(["✨", "🌟", "⭐", "💫"][i % 4])
-                            .font(.system(size: CGFloat.random(in: 16...28)))
-                            .offset(
-                                x: CGFloat.random(in: -80...80),
-                                y: CGFloat.random(in: -60...20)
-                            )
-                            .opacity(0.7)
-                    }
-
-                    Text("🎉")
-                        .font(.system(size: 64))
-                }
-                .frame(height: 120)
+            VStack(spacing: 16) {
+                Text("✨")
+                    .font(.system(size: 48))
 
                 Text("The End!")
-                    .font(.custom("Nunito-Black", size: 34))
+                    .font(.system(size: 32, weight: .black))
                     .foregroundColor(.white)
 
                 Text(story.title)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
+                    .font(.system(size: 16))
+                    .foregroundColor(.white.opacity(0.7))
 
-                Spacer().frame(height: 4)
+                Spacer().frame(height: 8)
 
-                // Buttons
-                VStack(spacing: 10) {
-                    Button {
-                        storyVM.currentPage = 0
-                        withAnimation { showCompletion = false }
-                    } label: {
-                        Text("Read Again")
-                            .font(.custom("Nunito-ExtraBold", size: 15))
-                            .foregroundColor(.smTextPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(Color.smYellow400)
-                            .clipShape(Capsule())
-                            .shadow(color: .smYellow400.opacity(0.3), radius: 12, y: 4)
-                    }
-
-                    Button {
-                        storyVM.saveStory()
-                        currentScreen = .share
-                    } label: {
-                        Text("Save & Share")
-                            .font(.custom("Nunito-ExtraBold", size: 15))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(
-                                LinearGradient(
-                                    colors: [.smCoral400, .smCoral500],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .clipShape(Capsule())
-                            .shadow(color: .smCoral400.opacity(0.4), radius: 12, y: 4)
-                    }
-
-                    Button {
-                        storyVM.resetForNewStory()
-                        currentScreen = .home
-                    } label: {
-                        Text("Create Another Story")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.5))
-                            .frame(height: 44)
-                    }
+                Button {
+                    storyVM.currentPage = 0
+                    showCompletion = false
+                } label: {
+                    Text("Read Again")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundColor(.smCoral400)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.white)
+                        .clipShape(Capsule())
                 }
-                .padding(.horizontal, 32)
 
-                Spacer()
+                Button {
+                    storyVM.saveStory()
+                    currentScreen = .share
+                } label: {
+                    Text("Save & Share")
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            LinearGradient(
+                                colors: [.smCoral400, .smCoral500],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: .smCoral400.opacity(0.4), radius: 10, y: 4)
+                }
+
+                Button {
+                    storyVM.resetForNewStory()
+                    currentScreen = .home
+                } label: {
+                    Text("Create Another Story")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(height: 40)
+                }
             }
+            .padding(.horizontal, 40)
         }
     }
 }
