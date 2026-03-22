@@ -18,21 +18,22 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
+            // Force full-screen background so ZStack never shrinks
+            Color(hex: "FFF9F0")
+                .ignoresSafeArea()
+
             switch currentScreen {
             case .home:
                 HomeView(storyVM: storyVM, currentScreen: $currentScreen)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .leading).combined(with: .opacity),
-                        removal: .opacity
-                    ))
+                    .transition(.opacity)
 
             case .photoUpload:
                 PhotoUploadView(storyVM: storyVM, photoVM: photoVM, currentScreen: $currentScreen)
-                    .transition(.move(edge: .trailing))
+                    .transition(.opacity)
 
             case .storySetup:
                 StorySetupView(storyVM: storyVM, currentScreen: $currentScreen)
-                    .transition(.move(edge: .trailing))
+                    .transition(.opacity)
 
             case .loading:
                 LoadingView(storyVM: storyVM, currentScreen: $currentScreen)
@@ -63,16 +64,16 @@ struct ContentView: View {
 
             case .myBooks:
                 MyBooksView(storyVM: storyVM, currentScreen: $currentScreen)
-                    .transition(.move(edge: .trailing))
+                    .transition(.opacity)
 
             case .profile:
                 ProfileView(storyVM: storyVM, currentScreen: $currentScreen)
-                    .transition(.move(edge: .trailing))
+                    .transition(.opacity)
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentScreen)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeInOut(duration: 0.25), value: currentScreen)
         .onChange(of: currentScreen) { oldValue, newValue in
-            // Reset photo state when entering creation flow fresh (not going back from setup)
             if newValue == .photoUpload && oldValue != .storySetup {
                 photoVM.reset()
             }
@@ -84,4 +85,3 @@ struct ContentView: View {
     ContentView()
         .previewDevice("iPhone 15 Pro")
 }
-
