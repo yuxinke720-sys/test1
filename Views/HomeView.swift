@@ -17,7 +17,7 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            tabBar
+            smTabBar(active: .home, currentScreen: $currentScreen)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: "FFF9F0").ignoresSafeArea())
@@ -312,47 +312,12 @@ struct HomeView: View {
         .padding(.horizontal, 20)
     }
 
-    // MARK: - Tab Bar
-    private var tabBar: some View {
-        HStack {
-            tabItem(icon: "🏠", label: "Home", isActive: true)
-            tabItem(icon: "✨", label: "Create", isActive: false) {
-                currentScreen = .photoUpload
-            }
-            tabItem(icon: "📚", label: "My Books", isActive: false) {
-                currentScreen = .myBooks
-            }
-            tabItem(icon: "👤", label: "Profile", isActive: false) {
-                currentScreen = .profile
-            }
-        }
-        .padding(.top, 8)
-        .padding(.bottom, 34)
-        .background(
-            Color.white
-                .shadow(color: .black.opacity(0.05), radius: 1, y: -1)
-                .ignoresSafeArea(edges: .bottom)
-        )
-    }
-
-    private func tabItem(icon: String, label: String, isActive: Bool, action: (() -> Void)? = nil) -> some View {
-        Button {
-            action?()
-        } label: {
-            VStack(spacing: 3) {
-                Text(icon).font(.system(size: 22))
-                Text(label)
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(isActive ? .smYellow600 : .smNeutral300)
-            }
-            .frame(maxWidth: .infinity)
-        }
-    }
 }
 
-#Preview {
+#Preview("HomeView") {
     HomeView(
         storyVM: StoryViewModel(),
         currentScreen: .constant(.home)
     )
+    .previewDevice("iPhone 15 Pro")
 }

@@ -80,7 +80,8 @@ struct ContentView: View {
     }
 }
 
-#Preview {
+#Preview("ContentView") {
     ContentView()
+        .previewDevice("iPhone 15 Pro")
 }
 
