@@ -17,9 +17,6 @@ struct LoadingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Status bar area
-            Color.clear.frame(height: 44)
-
             VStack(spacing: 16) {
                 Spacer()
 
@@ -110,8 +107,9 @@ struct LoadingView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: .all)
         )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             startFunFactRotation()
         }

@@ -17,11 +17,13 @@ struct StorySetupView: View {
                     pageCountSection
                     Spacer().frame(height: 20)
                 }
+                .frame(maxWidth: .infinity)
             }
 
             bottomZone
         }
-        .background(Color.white.ignoresSafeArea())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.ignoresSafeArea(edges: .all))
     }
 
     // MARK: - Nav Bar

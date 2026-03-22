@@ -10,10 +10,7 @@ struct PhotoUploadView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Nav bar
             navBar
-
-            // Progress bar
             progressBar(step: 1, total: 2, fill: 0.5)
 
             ScrollView(showsIndicators: false) {
@@ -24,11 +21,13 @@ struct PhotoUploadView: View {
                     photoGrid
                     photoCount
                 }
+                .frame(maxWidth: .infinity)
             }
 
             bottomZone
         }
-        .background(Color.white.ignoresSafeArea())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.ignoresSafeArea(edges: .all))
         .onChange(of: photoVM.photosPickerItems) {
             Task { await photoVM.loadPhotos() }
         }
@@ -47,7 +46,7 @@ struct PhotoUploadView: View {
             }
             Spacer()
             Text("New Story")
-                .font(.system(size: 17, weight: .heavy))
+                .font(.system(size: 17, weight: .bold))
                 .foregroundColor(.smTextPrimary)
             Spacer()
             Color.clear.frame(width: 36)
@@ -86,7 +85,7 @@ struct PhotoUploadView: View {
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text("Add photos of \(storyVM.childName)")
-                .font(.system(size: 20, weight: .black))
+                .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.smTextPrimary)
             Text("1–10 photos · Clear face shots work best")
                 .font(.system(size: 12))
@@ -104,9 +103,9 @@ struct PhotoUploadView: View {
             Spacer()
             tipItem(emoji: "☀️", label: "Good light")
             Spacer()
-            tipItem(emoji: "📸", label: "Natural pose")
+            tipItem(emoji: "🧍", label: "Natural pose")
             Spacer()
-            tipItem(emoji: "🚫", label: "No sunglasses")
+            tipItem(emoji: "🕶️", label: "No sunglasses")
         }
         .padding(10)
         .background(Color.smYellow50)
@@ -137,7 +136,6 @@ struct PhotoUploadView: View {
                 columns: Array(repeating: GridItem(.fixed(cellSize), spacing: spacing), count: 3),
                 spacing: spacing
             ) {
-                // Filled cells — each image forced to exact square
                 ForEach(Array(photoVM.selectedImages.enumerated()), id: \.offset) { index, image in
                     ZStack(alignment: .topTrailing) {
                         Image(uiImage: image)
@@ -147,11 +145,10 @@ struct PhotoUploadView: View {
                             .clipped()
                             .cornerRadius(11)
 
-                        // Delete button — always visible on every cell
                         Button {
                             photoVM.removePhoto(at: index)
                         } label: {
-                            Image(systemName: "xmark")
+                            Text("✕")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(width: 22, height: 22)
@@ -165,7 +162,6 @@ struct PhotoUploadView: View {
                     .transition(.scale.combined(with: .opacity))
                 }
 
-                // Empty cells — fill to at least 6 total, up to remaining slots
                 let totalVisible = max(6, photoVM.selectedImages.count + 1)
                 let emptyCells = max(0, min(photoVM.maxPhotos, totalVisible) - photoVM.selectedImages.count)
                 if emptyCells > 0 {
@@ -199,12 +195,10 @@ struct PhotoUploadView: View {
         .animation(.spring(response: 0.3), value: photoVM.selectedImages.count)
     }
 
-    /// Calculate grid height based on number of rows
     private var photoGridHeight: CGFloat {
         let totalVisible = max(6, photoVM.selectedImages.count + 1)
         let cellCount = min(photoVM.maxPhotos, totalVisible)
         let rows = ceil(Double(cellCount) / 3.0)
-        // Estimate: each cell ~110pt + 7pt spacing per row
         return CGFloat(rows) * 117 + 10
     }
 
@@ -242,7 +236,7 @@ struct PhotoUploadView: View {
                         Text("Analyze & Continue →")
                     }
                 }
-                .font(.system(size: 15, weight: .heavy))
+                .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
@@ -264,7 +258,8 @@ struct PhotoUploadView: View {
                 .foregroundColor(.smNeutral300)
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 34)
     }
 }
 
@@ -296,6 +291,7 @@ func progressBar(step: Int, total: Int, fill: Double) -> some View {
     .padding(.horizontal, 18)
     .padding(.bottom, 10)
 }
+
 #Preview {
     PhotoUploadView(
         storyVM: StoryViewModel(),

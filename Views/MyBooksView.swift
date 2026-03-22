@@ -23,7 +23,7 @@ struct MyBooksView: View {
                 }
                 Spacer()
                 Text("My Books")
-                    .font(.system(size: 17, weight: .heavy))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundColor(.smTextPrimary)
                 Spacer()
                 Color.clear.frame(width: 36)
@@ -63,9 +63,10 @@ struct MyBooksView: View {
                 }
             }
 
-            tabBar
+            smTabBar(active: .myBooks, currentScreen: $currentScreen)
         }
-        .background(Color.smBackground)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.smBackground.ignoresSafeArea(edges: .all))
     }
 
     // All books: saved + demo samples
@@ -194,36 +195,6 @@ struct MyBooksView: View {
             .padding(.top, 8)
 
             Spacer()
-        }
-    }
-
-    // MARK: - Tab Bar
-    private var tabBar: some View {
-        HStack {
-            tabItem(icon: "🏠", label: "Home", isActive: false) { currentScreen = .home }
-            tabItem(icon: "✨", label: "Create", isActive: false) { currentScreen = .photoUpload }
-            tabItem(icon: "📚", label: "My Books", isActive: true)
-            tabItem(icon: "👤", label: "Profile", isActive: false) { currentScreen = .profile }
-        }
-        .padding(.top, 8)
-        .padding(.bottom, 24)
-        .background(
-            Color.white
-                .shadow(color: .black.opacity(0.05), radius: 1, y: -1)
-        )
-    }
-
-    private func tabItem(icon: String, label: String, isActive: Bool, action: (() -> Void)? = nil) -> some View {
-        Button {
-            action?()
-        } label: {
-            VStack(spacing: 3) {
-                Text(icon).font(.system(size: 22))
-                Text(label)
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(isActive ? .smYellow600 : .smNeutral300)
-            }
-            .frame(maxWidth: .infinity)
         }
     }
 

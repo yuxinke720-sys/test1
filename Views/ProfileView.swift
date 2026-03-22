@@ -41,9 +41,10 @@ struct ProfileView: View {
                 }
             }
 
-            tabBar
+            smTabBar(active: .profile, currentScreen: $currentScreen)
         }
-        .background(Color.smBackground)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.smBackground.ignoresSafeArea(edges: .all))
     }
 
     // MARK: - Profile Header
@@ -228,35 +229,6 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Tab Bar
-    private var tabBar: some View {
-        HStack {
-            tabItem(icon: "🏠", label: "Home", isActive: false) { currentScreen = .home }
-            tabItem(icon: "✨", label: "Create", isActive: false) { currentScreen = .photoUpload }
-            tabItem(icon: "📚", label: "My Books", isActive: false) { currentScreen = .myBooks }
-            tabItem(icon: "👤", label: "Profile", isActive: true)
-        }
-        .padding(.top, 8)
-        .padding(.bottom, 24)
-        .background(
-            Color.white
-                .shadow(color: .black.opacity(0.05), radius: 1, y: -1)
-        )
-    }
-
-    private func tabItem(icon: String, label: String, isActive: Bool, action: (() -> Void)? = nil) -> some View {
-        Button {
-            action?()
-        } label: {
-            VStack(spacing: 3) {
-                Text(icon).font(.system(size: 22))
-                Text(label)
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(isActive ? .smYellow600 : .smNeutral300)
-            }
-            .frame(maxWidth: .infinity)
-        }
-    }
 }
 
 #Preview {

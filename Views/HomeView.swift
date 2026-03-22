@@ -14,11 +14,13 @@ struct HomeView: View {
                     recentBooksSection
                     themesSection
                 }
+                .frame(maxWidth: .infinity)
             }
 
-            tabBar
+            smTabBar(active: .home, currentScreen: $currentScreen)
         }
-        .background(Color.smBackground.ignoresSafeArea())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.smBackground.ignoresSafeArea(edges: .all))
     }
 
     // MARK: - Top Bar
@@ -42,11 +44,7 @@ struct HomeView: View {
                     )
                 )
                 .frame(width: 40, height: 40)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
-                )
+                .overlay(Text("👩").font(.system(size: 18)))
                 .shadow(color: .smYellow400.opacity(0.3), radius: 6, y: 2)
         }
         .padding(.horizontal, 20)
@@ -67,17 +65,16 @@ struct HomeView: View {
                 )
                 .shadow(color: .smYellow400.opacity(0.25), radius: 10, y: 4)
 
-            // Decorative SF Symbol
             HStack {
                 Spacer()
-                Image(systemName: "book.fill")
-                    .font(.system(size: 64, weight: .light))
-                    .foregroundColor(.smTextPrimary.opacity(0.1))
-                    .offset(x: -16, y: -10)
+                Text("📖")
+                    .font(.system(size: 70))
+                    .opacity(0.2)
+                    .offset(x: -12, y: -8)
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Ready to create")
+                Text("Ready to create ✨")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.smTextPrimary.opacity(0.55))
 
@@ -94,8 +91,7 @@ struct HomeView: View {
                     HStack(spacing: 5) {
                         Text("Create Now")
                             .font(.system(size: 13, weight: .semibold))
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 11, weight: .semibold))
+                        Text("→")
                     }
                     .foregroundColor(.smCoral500)
                     .padding(.horizontal, 18)
@@ -115,15 +111,15 @@ struct HomeView: View {
     // MARK: - Templates
     private var templatesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title: "Story Templates", sfIcon: "books.vertical.fill", action: "See all")
+            sectionHeader(title: "📚 Story Templates", action: "See all →")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    templateChip(sfIcon: "building.columns", name: "First Day", isFree: true)
-                    templateChip(sfIcon: "flame.fill", name: "Be Brave", isFree: true)
-                    templateChip(sfIcon: "moon.stars.fill", name: "Bedtime", isFree: false)
-                    templateChip(sfIcon: "gift.fill", name: "Birthday", isFree: false)
-                    templateChip(sfIcon: "rainbow", name: "Rainbow", isFree: false)
+                    templateChip(emoji: "🏫", name: "First Day", isFree: true)
+                    templateChip(emoji: "🦁", name: "Be Brave", isFree: true)
+                    templateChip(emoji: "🌙", name: "Bedtime", isFree: false)
+                    templateChip(emoji: "🎂", name: "Birthday", isFree: false)
+                    templateChip(emoji: "🌈", name: "Rainbow", isFree: false)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 4)
@@ -132,11 +128,9 @@ struct HomeView: View {
         .padding(.bottom, 16)
     }
 
-    private func templateChip(sfIcon: String, name: String, isFree: Bool) -> some View {
+    private func templateChip(emoji: String, name: String, isFree: Bool) -> some View {
         VStack(spacing: 6) {
-            Image(systemName: sfIcon)
-                .font(.system(size: 22, weight: .medium))
-                .foregroundColor(isFree ? .smCoral400 : .smNeutral300)
+            Text(emoji).font(.system(size: 26))
             Text(name)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundColor(.smTextPrimary)
@@ -154,9 +148,8 @@ struct HomeView: View {
         .overlay(
             Group {
                 if !isFree {
-                    Image(systemName: "lock.fill")
+                    Text("🔒")
                         .font(.system(size: 8))
-                        .foregroundColor(.smNeutral500)
                         .padding(4)
                         .background(Color.smNeutral100)
                         .clipShape(Circle())
@@ -176,7 +169,7 @@ struct HomeView: View {
     // MARK: - Recent Books
     private var recentBooksSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title: "Recent Books", sfIcon: nil, action: "See all")
+            sectionHeader(title: "Recent Books", action: "See all →")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -209,9 +202,7 @@ struct HomeView: View {
                         .frame(width: 120, height: 152)
                         .overlay(
                             VStack(spacing: 6) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 20, weight: .medium))
-                                    .foregroundColor(.smNeutral300)
+                                Text("➕").font(.system(size: 20))
                                 Text("New Story")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(.smNeutral300)
@@ -228,7 +219,6 @@ struct HomeView: View {
         .padding(.bottom, 16)
     }
 
-    /// Open a demo sample story in the reader
     private func openSampleStory(emoji: String, title: String, theme: String) {
         let sampleTexts = [
             "Once upon a time, \(storyVM.childName) woke up to a beautiful sunny morning.",
@@ -281,7 +271,7 @@ struct HomeView: View {
     // MARK: - Themes
     private var themesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title: "Explore Themes", sfIcon: nil)
+            sectionHeader(title: "Explore Themes")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -307,66 +297,19 @@ struct HomeView: View {
     }
 
     // MARK: - Section Header
-    private func sectionHeader(title: String, sfIcon: String? = nil, action: String? = nil) -> some View {
-        HStack(spacing: 6) {
-            if let sfIcon {
-                Image(systemName: sfIcon)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.smCoral400)
-            }
+    private func sectionHeader(title: String, action: String? = nil) -> some View {
+        HStack {
             Text(title)
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.smTextPrimary)
             Spacer()
             if let action {
-                HStack(spacing: 3) {
-                    Text(action)
-                        .font(.system(size: 12, weight: .medium))
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
-                }
-                .foregroundColor(.smCoral400)
+                Text(action)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.smCoral400)
             }
         }
         .padding(.horizontal, 20)
-    }
-
-    // MARK: - Tab Bar
-    private var tabBar: some View {
-        HStack {
-            tabItem(sfIcon: "house.fill", label: "Home", isActive: true)
-            tabItem(sfIcon: "sparkles", label: "Create", isActive: false) {
-                currentScreen = .photoUpload
-            }
-            tabItem(sfIcon: "books.vertical.fill", label: "My Books", isActive: false) {
-                currentScreen = .myBooks
-            }
-            tabItem(sfIcon: "person.fill", label: "Profile", isActive: false) {
-                currentScreen = .profile
-            }
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 26)
-        .background(
-            Color.white
-                .shadow(color: .black.opacity(0.04), radius: 1, y: -1)
-        )
-    }
-
-    private func tabItem(sfIcon: String, label: String, isActive: Bool, action: (() -> Void)? = nil) -> some View {
-        Button {
-            action?()
-        } label: {
-            VStack(spacing: 4) {
-                Image(systemName: sfIcon)
-                    .font(.system(size: 20, weight: isActive ? .semibold : .regular))
-                    .foregroundColor(isActive ? .smYellow600 : .smNeutral300)
-                Text(label)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(isActive ? .smYellow600 : .smNeutral300)
-            }
-            .frame(maxWidth: .infinity)
-        }
     }
 }
 
