@@ -29,7 +29,7 @@ struct HomeView: View {
     private var topBar: some View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
-                Text("Good morning! 👋")
+                Text("Good morning!")
                     .font(.system(size: 18, weight: .black))
                     .foregroundColor(Color(hex: "1E1C1A"))
                 Text("What story shall we create?")
@@ -46,7 +46,11 @@ struct HomeView: View {
                     )
                 )
                 .frame(width: 42, height: 42)
-                .overlay(Text("👩").font(.system(size: 20)))
+                .overlay(
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(.white)
+                )
                 .shadow(color: Color(hex: "FFD93D").opacity(0.4), radius: 8, y: 3)
         }
         .padding(.horizontal, 18)
@@ -69,16 +73,20 @@ struct HomeView: View {
 
             HStack {
                 Spacer()
-                Text("📖")
-                    .font(.system(size: 80))
-                    .opacity(0.25)
-                    .offset(x: -8)
+                Image(systemName: "book.fill")
+                    .font(.system(size: 64, weight: .light))
+                    .foregroundColor(Color(hex: "1E1C1A").opacity(0.12))
+                    .offset(x: -12, y: -8)
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Ready to create ✨")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(Color(hex: "1E1C1A").opacity(0.6))
+                HStack(spacing: 4) {
+                    Text("Ready to create")
+                        .font(.system(size: 10, weight: .bold))
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 9))
+                }
+                .foregroundColor(Color(hex: "1E1C1A").opacity(0.6))
 
                 Text("A new story\nfor little \(storyVM.childName)")
                     .font(.system(size: 22, weight: .black))
@@ -93,7 +101,8 @@ struct HomeView: View {
                     HStack(spacing: 6) {
                         Text("Create Now")
                             .font(.system(size: 13, weight: .bold))
-                        Text("→")
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 11, weight: .bold))
                     }
                     .foregroundColor(Color(hex: "E86D4A"))
                     .padding(.horizontal, 18)
@@ -113,15 +122,15 @@ struct HomeView: View {
     // MARK: - Templates
     private var templatesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(title: "📚 Story Templates", action: "See all →")
+            sectionHeader(icon: "books.vertical.fill", title: "Story Templates", action: "See all")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    templateChip(emoji: "🏫", name: "First Day", isFree: true)
-                    templateChip(emoji: "🦁", name: "Be Brave", isFree: true)
-                    templateChip(emoji: "🌙", name: "Bedtime", isFree: false)
-                    templateChip(emoji: "🎂", name: "Birthday", isFree: false)
-                    templateChip(emoji: "🌈", name: "Rainbow", isFree: false)
+                    templateChip(sfIcon: "building.columns.fill", name: "First Day", isFree: true)
+                    templateChip(sfIcon: "pawprint.fill", name: "Be Brave", isFree: true)
+                    templateChip(sfIcon: "moon.fill", name: "Bedtime", isFree: false)
+                    templateChip(sfIcon: "birthday.cake.fill", name: "Birthday", isFree: false)
+                    templateChip(sfIcon: "rainbow", name: "Rainbow", isFree: false)
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 4)
@@ -130,9 +139,11 @@ struct HomeView: View {
         .padding(.bottom, 12)
     }
 
-    private func templateChip(emoji: String, name: String, isFree: Bool) -> some View {
+    private func templateChip(sfIcon: String, name: String, isFree: Bool) -> some View {
         VStack(spacing: 5) {
-            Text(emoji).font(.system(size: 26))
+            Image(systemName: sfIcon)
+                .font(.system(size: 26))
+                .foregroundColor(isFree ? Color(hex: "FF8C6B") : Color(hex: "B8B3AC"))
             Text(name)
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(Color(hex: "1E1C1A"))
@@ -150,12 +161,12 @@ struct HomeView: View {
         .overlay(
             Group {
                 if !isFree {
-                    Text("🔒")
-                        .font(.system(size: 7, weight: .bold))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 7))
+                        .foregroundColor(Color(hex: "1E1C1A"))
+                        .padding(4)
                         .background(Color(hex: "FFD93D"))
-                        .cornerRadius(5)
+                        .clipShape(Circle())
                         .offset(x: 4, y: -4)
                 }
             },
@@ -172,24 +183,24 @@ struct HomeView: View {
     // MARK: - Recent Books
     private var recentBooksSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(title: "Recent Books", action: "See all →")
+            sectionHeader(title: "Recent Books", action: "See all")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     if storyVM.savedStories.isEmpty {
-                        bookCard(emoji: "🦁", title: "Emma's Brave Day", meta: "2 days ago",
+                        bookCard(sfIcon: "pawprint.fill", title: "Emma's Brave Day", meta: "2 days ago",
                                  gradient: [Color(hex: "FFD93D"), Color(hex: "FF8C6B")])
-                            .onTapGesture { openSampleStory(emoji: "🦁", title: "Emma's Brave Day", theme: "Being brave") }
-                        bookCard(emoji: "🚀", title: "To the Stars", meta: "1 week ago",
+                            .onTapGesture { openSampleStory(title: "Emma's Brave Day", theme: "Being brave") }
+                        bookCard(sfIcon: "airplane", title: "To the Stars", meta: "1 week ago",
                                  gradient: [Color(hex: "6BCB77"), Color(hex: "4D96FF")])
-                            .onTapGesture { openSampleStory(emoji: "🚀", title: "To the Stars", theme: "Space adventure") }
-                        bookCard(emoji: "🌊", title: "Ocean Friends", meta: "2 weeks ago",
+                            .onTapGesture { openSampleStory(title: "To the Stars", theme: "Space adventure") }
+                        bookCard(sfIcon: "water.waves", title: "Ocean Friends", meta: "2 weeks ago",
                                  gradient: [Color(hex: "FFBFA8"), Color(hex: "FF5252")])
-                            .onTapGesture { openSampleStory(emoji: "🌊", title: "Ocean Friends", theme: "Making friends") }
+                            .onTapGesture { openSampleStory(title: "Ocean Friends", theme: "Making friends") }
                     } else {
                         ForEach(storyVM.savedStories) { story in
                             bookCard(
-                                emoji: story.pages.first?.emoji ?? "📖",
+                                sfIcon: "book.fill",
                                 title: story.title,
                                 meta: story.createdAt.formatted(.relative(presentation: .named)),
                                 gradient: [Color(hex: "FFD93D"), Color(hex: "FF8C6B")]
@@ -202,13 +213,16 @@ struct HomeView: View {
                         }
                     }
 
+                    // Add new card
                     VStack(spacing: 5) {
                         RoundedRectangle(cornerRadius: 14)
                             .strokeBorder(Color(hex: "E0DBD4"), style: StrokeStyle(lineWidth: 2, dash: [6]))
                             .frame(width: 120, height: 152)
                             .overlay(
                                 VStack(spacing: 5) {
-                                    Text("➕").font(.system(size: 26))
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 26, weight: .medium))
+                                        .foregroundColor(Color(hex: "B8B3AC"))
                                     Text("New Story")
                                         .font(.system(size: 12, weight: .regular))
                                         .foregroundColor(Color(hex: "B8B3AC"))
@@ -224,7 +238,7 @@ struct HomeView: View {
         .padding(.bottom, 12)
     }
 
-    private func openSampleStory(emoji: String, title: String, theme: String) {
+    private func openSampleStory(title: String, theme: String) {
         let sampleTexts = [
             "Once upon a time, \(storyVM.childName) woke up to a beautiful sunny morning.",
             "\(storyVM.childName) felt butterflies in their tummy. Today was going to be special!",
@@ -235,7 +249,7 @@ struct HomeView: View {
             "When the adventure was over, \(storyVM.childName) felt proud.",
             "\"I was brave today,\" \(storyVM.childName) whispered. The stars twinkled.",
         ]
-        let emojis = ["🌅", "🦋", "💪", "🪜", "🌳", "😄", "⭐", "🌙"]
+        let emojis = ["sun.max.fill", "leaf.fill", "flame.fill", "figure.walk", "tree.fill", "face.smiling", "star.fill", "moon.fill"]
         let pages = (0..<8).map { i in
             StoryPage(pageNumber: i + 1, text: sampleTexts[i], emoji: emojis[i])
         }
@@ -244,12 +258,16 @@ struct HomeView: View {
         currentScreen = .storybook
     }
 
-    private func bookCard(emoji: String, title: String, meta: String, gradient: [Color]) -> some View {
+    private func bookCard(sfIcon: String, title: String, meta: String, gradient: [Color]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             RoundedRectangle(cornerRadius: 14)
                 .fill(LinearGradient(colors: gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 120, height: 152)
-                .overlay(Text(emoji).font(.system(size: 48)))
+                .overlay(
+                    Image(systemName: sfIcon)
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                )
                 .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
 
             Text(title)
@@ -273,19 +291,13 @@ struct HomeView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(storyVM.themeChips, id: \.1) { emoji, name in
-                        Text("\(emoji) \(name)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(hex: "C89F00"))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
-                            .background(Color(hex: "FFFBD4"))
-                            .clipShape(Capsule())
-                            .onTapGesture {
-                                storyVM.selectThemeChip(name)
-                                currentScreen = .photoUpload
-                            }
-                    }
+                    themeChip(icon: "pawprint.fill", name: "Be Brave")
+                    themeChip(icon: "building.columns.fill", name: "First Day")
+                    themeChip(icon: "person.2.fill", name: "Friends")
+                    themeChip(icon: "moon.fill", name: "Bedtime")
+                    themeChip(icon: "rainbow", name: "Sharing")
+                    themeChip(icon: "figure.and.child.holdinghands", name: "New Sibling")
+                    themeChip(icon: "fork.knife", name: "New Foods")
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 4)
@@ -294,17 +306,44 @@ struct HomeView: View {
         .padding(.bottom, 20)
     }
 
+    private func themeChip(icon: String, name: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+            Text(name)
+                .font(.system(size: 12, weight: .bold))
+        }
+        .foregroundColor(Color(hex: "C89F00"))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .background(Color(hex: "FFFBD4"))
+        .clipShape(Capsule())
+        .onTapGesture {
+            storyVM.selectThemeChip(name)
+            currentScreen = .photoUpload
+        }
+    }
+
     // MARK: - Section Header
-    private func sectionHeader(title: String, action: String? = nil) -> some View {
-        HStack {
+    private func sectionHeader(icon: String? = nil, title: String, action: String? = nil) -> some View {
+        HStack(spacing: 6) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(Color(hex: "FF8C6B"))
+            }
             Text(title)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(Color(hex: "1E1C1A"))
             Spacer()
             if let action {
-                Text(action)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(Color(hex: "FF8C6B"))
+                HStack(spacing: 3) {
+                    Text(action)
+                        .font(.system(size: 12, weight: .bold))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .bold))
+                }
+                .foregroundColor(Color(hex: "FF8C6B"))
             }
         }
         .padding(.horizontal, 18)

@@ -3,12 +3,12 @@ import SwiftUI
 enum TabBarItem: String {
     case home, create, myBooks, profile
 
-    var emoji: String {
+    var sfSymbol: String {
         switch self {
-        case .home: return "🏠"
-        case .create: return "✨"
-        case .myBooks: return "📚"
-        case .profile: return "👤"
+        case .home: return "house.fill"
+        case .create: return "sparkles"
+        case .myBooks: return "books.vertical.fill"
+        case .profile: return "person.fill"
         }
     }
 
@@ -40,7 +40,9 @@ func smTabBar(active: TabBarItem, currentScreen: Binding<AppScreen>) -> some Vie
                 }
             } label: {
                 VStack(spacing: 4) {
-                    Text(item.emoji).font(.system(size: 22))
+                    Image(systemName: item.sfSymbol)
+                        .font(.system(size: 22))
+                        .foregroundColor(item == active ? Color(hex: "C89F00") : Color(hex: "B8B3AC"))
                     Text(item.label)
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(item == active ? Color(hex: "C89F00") : Color(hex: "B8B3AC"))
