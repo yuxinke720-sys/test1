@@ -30,7 +30,10 @@ struct StorySetupView: View {
     private var navBar: some View {
         HStack {
             Button { currentScreen = .photoUpload } label: {
-                Text("←").font(.system(size: 22)).foregroundColor(Color(hex: "FF8C6B")).frame(width: 36)
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(Color(hex: "FF8C6B"))
+                    .frame(width: 36)
             }
             Spacer()
             Text("New Story").font(.system(size: 17, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
@@ -45,18 +48,21 @@ struct StorySetupView: View {
                 Circle()
                     .fill(LinearGradient(colors: [Color(hex: "FFD93D"), Color(hex: "FF8C6B")], startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 50, height: 50)
-                    .overlay(Text("👧").font(.system(size: 26)))
+                    .overlay(Image(systemName: "figure.child").font(.system(size: 22, weight: .medium)).foregroundColor(.white))
                     .shadow(color: Color(hex: "FF8C6B").opacity(0.3), radius: 6, y: 3)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Meet your story hero! 👋").font(.system(size: 13, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
+                    Text("Meet your story hero!").font(.system(size: 13, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
                     Text("Based on your photos").font(.system(size: 10)).foregroundColor(Color(hex: "7A756E"))
                 }
             }
             Text("\"\(storyVM.childName) is a warm-hearted little girl with bright eyes, always curious about the world around her…\"")
                 .font(.system(size: 11.5)).foregroundColor(Color(hex: "7A756E")).lineSpacing(4)
                 .padding(11).background(Color(hex: "FFFFFF").opacity(0.7)).cornerRadius(9)
-            HStack(spacing: 4) { Text("↻"); Text("Regenerate description") }
-                .font(.system(size: 11, weight: .bold)).foregroundColor(Color(hex: "FF8C6B"))
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .bold))
+                Text("Regenerate description")
+            }
+            .font(.system(size: 11, weight: .bold)).foregroundColor(Color(hex: "FF8C6B"))
         }
         .padding(14)
         .background(LinearGradient(colors: [Color(hex: "FFFEF5"), Color(hex: "FFFEF8")], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -99,7 +105,9 @@ struct StorySetupView: View {
                 ForEach(StoryStyle.allCases, id: \.self) { style in
                     let sel = storyVM.selectedStyle == style
                     VStack(spacing: 4) {
-                        Text(style.emoji).font(.system(size: 22))
+                        Image(systemName: sfIconForStyle(style))
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundColor(sel ? Color(hex: "FF8C6B") : Color(hex: "7A756E"))
                         Text(style.rawValue).font(.system(size: 10, weight: .bold)).foregroundColor(Color(hex: "3D3A36"))
                     }
                     .padding(.vertical, 11).padding(.horizontal, 7).frame(maxWidth: .infinity)
@@ -109,6 +117,14 @@ struct StorySetupView: View {
                 }
             }.padding(.horizontal, 18)
         }.padding(.bottom, 14)
+    }
+
+    private func sfIconForStyle(_ style: StoryStyle) -> String {
+        switch style {
+        case .warmCozy: return "heart.fill"
+        case .adventure: return "airplane"
+        case .fantasy: return "sparkles"
+        }
     }
 
     private var pageCountSection: some View {
@@ -136,10 +152,14 @@ struct StorySetupView: View {
                 currentScreen = .loading
                 Task { await storyVM.generateStory(); if storyVM.currentStory != nil { currentScreen = .storybook } }
             } label: {
-                Text("✨ Generate My Story").font(.system(size: 15, weight: .bold)).foregroundColor(.white)
-                    .frame(maxWidth: .infinity).frame(height: 50)
-                    .background(LinearGradient(colors: [Color(hex: "FF8C6B"), Color(hex: "E86D4A")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .clipShape(Capsule()).shadow(color: Color(hex: "FF8C6B").opacity(0.35), radius: 10, y: 4)
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles").font(.system(size: 14, weight: .bold))
+                    Text("Generate My Story")
+                }
+                .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                .frame(maxWidth: .infinity).frame(height: 50)
+                .background(LinearGradient(colors: [Color(hex: "FF8C6B"), Color(hex: "E86D4A")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .clipShape(Capsule()).shadow(color: Color(hex: "FF8C6B").opacity(0.35), radius: 10, y: 4)
             }.disabled(!storyVM.canGenerate).opacity(storyVM.canGenerate ? 1 : 0.4)
         }.padding(.horizontal, 18).padding(.top, 12).padding(.bottom, 34)
     }

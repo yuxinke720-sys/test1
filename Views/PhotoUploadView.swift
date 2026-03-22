@@ -36,7 +36,10 @@ struct PhotoUploadView: View {
     private var navBar: some View {
         HStack {
             Button { currentScreen = .home } label: {
-                Text("←").font(.system(size: 22)).foregroundColor(Color(hex: "FF8C6B")).frame(width: 36)
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(Color(hex: "FF8C6B"))
+                    .frame(width: 36)
             }
             Spacer()
             Text("New Story").font(.system(size: 17, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
@@ -48,7 +51,9 @@ struct PhotoUploadView: View {
 
     private var privacyBanner: some View {
         HStack(alignment: .top, spacing: 9) {
-            Text("🔒").font(.system(size: 18))
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(Color(hex: "2A8A40"))
             VStack(alignment: .leading, spacing: 2) {
                 Text("Your photos stay private").font(.system(size: 11, weight: .bold)).foregroundColor(Color(hex: "2A8A40"))
                 Text("Used only to illustrate your story. Never stored, shared, or used to train AI.")
@@ -71,18 +76,20 @@ struct PhotoUploadView: View {
 
     private var tipsCard: some View {
         HStack {
-            tipItem(emoji: "😊", label: "Clear face"); Spacer()
-            tipItem(emoji: "☀️", label: "Good light"); Spacer()
-            tipItem(emoji: "🧍", label: "Natural pose"); Spacer()
-            tipItem(emoji: "🕶️", label: "No sunglasses")
+            tipItem(icon: "face.smiling.inverse", label: "Clear face"); Spacer()
+            tipItem(icon: "sun.max.fill", label: "Good light"); Spacer()
+            tipItem(icon: "figure.stand", label: "Natural pose"); Spacer()
+            tipItem(icon: "eyeglasses", label: "No sunglasses")
         }
         .padding(10).background(Color(hex: "FFFEF5")).cornerRadius(12)
         .padding(.horizontal, 18).padding(.bottom, 14)
     }
 
-    private func tipItem(emoji: String, label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(emoji).font(.system(size: 20))
+    private func tipItem(icon: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(Color(hex: "C89F00"))
             Text(label).font(.system(size: 9, weight: .bold)).foregroundColor(Color(hex: "C89F00"))
         }
     }
@@ -99,7 +106,8 @@ struct PhotoUploadView: View {
                         Image(uiImage: image).resizable().scaledToFill()
                             .frame(width: cellSize, height: cellSize).clipped().cornerRadius(11)
                         Button { photoVM.removePhoto(at: index) } label: {
-                            Text("✕").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9, weight: .bold)).foregroundColor(.white)
                                 .frame(width: 22, height: 22).background(Color(hex: "FF5252")).clipShape(Circle())
                         }.padding(5)
                     }
@@ -117,7 +125,9 @@ struct PhotoUploadView: View {
                                 .frame(width: cellSize, height: cellSize)
                                 .background(Color(hex: "FFFEF5").cornerRadius(11))
                                 .overlay(VStack(spacing: 3) {
-                                    Text("📷").font(.system(size: 20))
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(Color(hex: "FFE94A"))
                                     Text("Add").font(.system(size: 9, weight: .bold)).foregroundColor(Color(hex: "F5C800"))
                                 })
                         }
@@ -152,7 +162,10 @@ struct PhotoUploadView: View {
             } label: {
                 HStack(spacing: 6) {
                     if photoVM.isAnalyzing { ProgressView().tint(.white).scaleEffect(0.8); Text("Analyzing…") }
-                    else { Text("Analyze & Continue →") }
+                    else {
+                        Text("Analyze & Continue")
+                        Image(systemName: "arrow.right").font(.system(size: 12, weight: .bold))
+                    }
                 }
                 .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
                 .frame(maxWidth: .infinity).frame(height: 50)
@@ -184,9 +197,4 @@ func progressBar(step: Int, total: Int, fill: Double) -> some View {
         Text("Step \(step) of \(total)").font(.system(size: 10, weight: .regular)).foregroundColor(Color(hex: "7A756E"))
     }
     .padding(.horizontal, 18).padding(.bottom, 10)
-}
-
-#Preview("PhotoUpload") {
-    PhotoUploadView(storyVM: StoryViewModel(), photoVM: PhotoViewModel(), currentScreen: .constant(.photoUpload))
-        .previewDevice("iPhone 15 Pro")
 }
