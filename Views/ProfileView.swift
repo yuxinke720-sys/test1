@@ -42,6 +42,7 @@ struct ProfileView: View {
     private var profileHeader: some View {
         ZStack {
             Color(hex: "FFC933")
+                .ignoresSafeArea(edges: .top)
 
             HStack {
                 Spacer()
