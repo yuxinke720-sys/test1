@@ -20,7 +20,7 @@ struct HomeView: View {
             tabBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.smBackground.ignoresSafeArea(edges: .all))
+        .background(Color(hex: "FFF9F0").ignoresSafeArea())
     }
 
     // MARK: - Top Bar
