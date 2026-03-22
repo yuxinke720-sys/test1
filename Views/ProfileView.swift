@@ -8,10 +8,11 @@ struct ProfileView: View {
         ZStack {
             Color(hex: "F7F3ED").ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    profileHeader
-                    childrenSection
+            VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        profileHeader
+                        childrenSection
 
                     settingsSection(title: "APP", rows: [
                         SettingsRow(sfIcon: "bell.fill", label: "Notifications", iconBg: Color(hex: "FFFBD4")),
@@ -34,6 +35,9 @@ struct ProfileView: View {
                         .padding(.top, 8).padding(.bottom, 40)
                 }
                 .frame(maxWidth: .infinity)
+                }
+
+                smTabBar(active: .profile, currentScreen: $currentScreen)
             }
         }
     }
