@@ -351,8 +351,9 @@ struct StoryCalendarView: View {
 
             Spacer()
 
-            Text(story.style.emoji)
-                .font(.system(size: 22))
+            Image(systemName: story.style.emoji)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(Color(hex: "E8705A"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)

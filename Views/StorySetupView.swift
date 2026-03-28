@@ -164,3 +164,6 @@ struct StorySetupView: View {
         }.padding(.horizontal, 18).padding(.top, 12).padding(.bottom, 34)
     }
 }
+#Preview("ContentView") {
+    ContentView()
+}

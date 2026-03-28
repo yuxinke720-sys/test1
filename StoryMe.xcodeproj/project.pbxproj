@@ -25,6 +25,10 @@
 		C1B07196D813A4C92C17D7DB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5F3D51BC4F3C5F34E06C2120 /* Assets.xcassets */; };
 		D181C8F462E18AD5FBEE7B14 /* MyBooksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2559185F63C59BCBB0403BEB /* MyBooksView.swift */; };
 		ED811BC715839CD9BE8BF144 /* StoryCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3B3E0E736228FDFA9C9C1B3 /* StoryCalendarView.swift */; };
+		AA1122334455667788990011 /* StoryTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2233445566778899001122 /* StoryTemplate.swift */; };
+		CC3344556677889900112233 /* TemplatePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4455667788990011223344 /* TemplatePreviewView.swift */; };
+		EE5566778899001122334455 /* TemplatePhotoUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6677889900112233445566 /* TemplatePhotoUploadView.swift */; };
+		AABB112233445566778899AA /* StoryLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBCC223344556677889900BB /* StoryLibraryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +51,10 @@
 		C25E26BCD21C05D3D8D7D21A /* PhotoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewModel.swift; sourceTree = "<group>"; };
 		E3B3E0E736228FDFA9C9C1B3 /* StoryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryCalendarView.swift; sourceTree = "<group>"; };
 		F105A20727D22943FF9A31DC /* Story.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story.swift; sourceTree = "<group>"; };
+		BB2233445566778899001122 /* StoryTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryTemplate.swift; sourceTree = "<group>"; };
+		DD4455667788990011223344 /* TemplatePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplatePreviewView.swift; sourceTree = "<group>"; };
+		FF6677889900112233445566 /* TemplatePhotoUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplatePhotoUploadView.swift; sourceTree = "<group>"; };
+		BBCC223344556677889900BB /* StoryLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryLibraryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -63,6 +71,7 @@
 			children = (
 				F105A20727D22943FF9A31DC /* Story.swift */,
 				3BE6BAE205B06F7B59F154D6 /* StoryPage.swift */,
+				BB2233445566778899001122 /* StoryTemplate.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -111,6 +120,9 @@
 				E3B3E0E736228FDFA9C9C1B3 /* StoryCalendarView.swift */,
 				1B199C9EE55440AFA0D4EDBA /* StorySetupView.swift */,
 				99E459D2A9DF2D1F1CDFF1F8 /* TabBarView.swift */,
+				DD4455667788990011223344 /* TemplatePreviewView.swift */,
+				FF6677889900112233445566 /* TemplatePhotoUploadView.swift */,
+				BBCC223344556677889900BB /* StoryLibraryView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -202,6 +214,10 @@
 				4586AFC250EF4909635A3316 /* StoryViewModel.swift in Sources */,
 				95A9B4848F57F41830B71FBD /* StorybookView.swift in Sources */,
 				A54E2B6C024312477D61828B /* TabBarView.swift in Sources */,
+				AA1122334455667788990011 /* StoryTemplate.swift in Sources */,
+				CC3344556677889900112233 /* TemplatePreviewView.swift in Sources */,
+				EE5566778899001122334455 /* TemplatePhotoUploadView.swift in Sources */,
+				AABB112233445566778899AA /* StoryLibraryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

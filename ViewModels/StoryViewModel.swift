@@ -23,6 +23,9 @@ class StoryViewModel: ObservableObject {
     // Navigation
     var previousScreen: AppScreen = .home
 
+    // Templates
+    @Published var selectedTemplate: StoryTemplate?
+
     // Saved stories
     @Published var savedStories: [Story] = []
 
@@ -243,9 +246,9 @@ enum GenerationStage {
 
     var icon: String {
         switch self {
-        case .writing: return "✍️"
-        case .illustrating: return "🎨"
-        case .finalizing: return "✨"
+        case .writing: return "pencil.line"
+        case .illustrating: return "paintbrush.fill"
+        case .finalizing: return "sparkles"
         }
     }
 }

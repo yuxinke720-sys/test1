@@ -10,6 +10,9 @@ enum AppScreen: String, Equatable {
     case myBooks
     case profile
     case storyCalendar
+    case storyLibrary
+    case templatePreview
+    case templatePhotoUpload
 }
 
 struct ContentView: View {
@@ -75,6 +78,18 @@ struct ContentView: View {
             case .storyCalendar:
                 StoryCalendarView(storyVM: storyVM, currentScreen: $currentScreen)
                     .transition(.opacity)
+
+            case .storyLibrary:
+                StoryLibraryView(storyVM: storyVM, currentScreen: $currentScreen)
+                    .transition(.opacity)
+
+            case .templatePreview:
+                TemplatePreviewView(storyVM: storyVM, currentScreen: $currentScreen)
+                    .transition(.opacity)
+
+            case .templatePhotoUpload:
+                TemplatePhotoUploadView(storyVM: storyVM, photoVM: photoVM, currentScreen: $currentScreen)
+                    .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -84,7 +99,9 @@ struct ContentView: View {
             hasRestoredState = true
 
             // Transient screens should not survive a relaunch
-            if currentScreen == .loading || currentScreen == .share {
+            if currentScreen == .loading || currentScreen == .share
+                || currentScreen == .templatePreview || currentScreen == .templatePhotoUpload
+                || currentScreen == .storySetup || currentScreen == .photoUpload {
                 currentScreen = .home
                 return
             }
@@ -97,7 +114,8 @@ struct ContentView: View {
             }
         }
         .onChange(of: currentScreen) { oldValue, newValue in
-            if newValue == .photoUpload && oldValue != .storySetup {
+            if (newValue == .photoUpload && oldValue != .storySetup)
+                || newValue == .templatePhotoUpload {
                 photoVM.reset()
             }
             storyVM.persistReadingState()

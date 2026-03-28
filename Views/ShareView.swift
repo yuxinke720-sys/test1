@@ -41,7 +41,7 @@ struct ShareView: View {
                         RoundedRectangle(cornerRadius: 10)
                             .fill(LinearGradient(colors: [Color(hex: "FFF5A0"), Color(hex: "FFF0EC")], startPoint: .topLeading, endPoint: .bottomTrailing))
                             .frame(width: 80, height: 100)
-                            .overlay(Text(page.emoji).font(.system(size: 32)))
+                            .overlay(Image(systemName: page.emoji).font(.system(size: 26, weight: .medium)).foregroundColor(.white))
                             .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
                     }
                 }
@@ -51,17 +51,17 @@ struct ShareView: View {
 
     private var exportOptionsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            exportOption(icon: "📄", title: "PDF", subtitle: "Full story")
-            exportOption(icon: "🖼️", title: "Images", subtitle: "All pages")
-            exportOption(icon: "📱", title: "Share", subtitle: "System sheet")
-            exportOption(icon: "🖨️", title: "Print", subtitle: "PDF ready")
+            exportOption(icon: "doc.fill", title: "PDF", subtitle: "Full story")
+            exportOption(icon: "photo.fill", title: "Images", subtitle: "All pages")
+            exportOption(icon: "square.and.arrow.up", title: "Share", subtitle: "System sheet")
+            exportOption(icon: "printer.fill", title: "Print", subtitle: "PDF ready")
         }.padding(.horizontal, 20)
     }
 
     private func exportOption(icon: String, title: String, subtitle: String) -> some View {
         Button { showShareSheet = true } label: {
             VStack(spacing: 4) {
-                Text(icon).font(.system(size: 32))
+                Image(systemName: icon).font(.system(size: 26, weight: .medium)).foregroundColor(Color(hex: "E8705A"))
                 Text(title).font(.system(size: 13, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
                 Text(subtitle).font(.system(size: 11)).foregroundColor(Color(hex: "7A756E"))
             }
@@ -73,16 +73,16 @@ struct ShareView: View {
 
     private var quickShareRow: some View {
         HStack(spacing: 16) {
-            quickShareBtn(icon: "💬", color: Color(hex: "25D366"), label: "WhatsApp")
-            quickShareBtn(icon: "✉️", color: Color(hex: "34C759"), label: "Messages")
-            quickShareBtn(icon: "📡", color: Color(hex: "4D96FF"), label: "AirDrop")
-            quickShareBtn(icon: "···", color: Color(hex: "7A756E"), label: "More")
+            quickShareBtn(icon: "message.fill", color: Color(hex: "25D366"), label: "WhatsApp")
+            quickShareBtn(icon: "envelope.fill", color: Color(hex: "34C759"), label: "Messages")
+            quickShareBtn(icon: "airplayaudio", color: Color(hex: "4D96FF"), label: "AirDrop")
+            quickShareBtn(icon: "ellipsis", color: Color(hex: "7A756E"), label: "More")
         }
     }
 
     private func quickShareBtn(icon: String, color: Color, label: String) -> some View {
         VStack(spacing: 4) {
-            Text(icon).font(.system(size: 20))
+            Image(systemName: icon).font(.system(size: 20, weight: .medium)).foregroundColor(.white)
                 .frame(width: 56, height: 56).background(color).clipShape(Circle())
             Text(label).font(.system(size: 9, weight: .bold)).foregroundColor(Color(hex: "7A756E"))
         }.onTapGesture { showShareSheet = true }

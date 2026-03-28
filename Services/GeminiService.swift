@@ -67,18 +67,18 @@ class GeminiService {
         try await Task.sleep(nanoseconds: 0) // Instant — delay handled by LoadingView
 
         let samplePages: [(String, String)] = [
-            ("Once upon a time, \(childName) woke up to a beautiful sunny morning. Today was going to be a very special day!", "🌅"),
-            ("\(childName) put on their favorite outfit and looked in the mirror with a big smile. \"Today I'm going to be brave!\" they said.", "👧"),
-            ("At the park, \(childName) saw a tall, twisty slide that reached up to the clouds. Other kids zoomed down it, laughing and cheering.", "🎢"),
-            ("\(childName) felt butterflies in their tummy. \"It's so high up,\" they whispered, looking at the very top.", "🦋"),
-            ("A friendly squirrel appeared on the railing. \"Don't worry,\" it seemed to say with its twitchy nose. \"I'll climb with you!\"", "🐿️"),
-            ("Step by step, \(childName) climbed the ladder. One step, two steps, three steps — almost there!", "🪜"),
-            ("At the top, \(childName) could see the whole park! The trees looked like tiny broccoli and the people looked like ants.", "🌳"),
-            ("\(childName) sat down, took a deep breath, and... WHOOOOSH! Down the slide they went, faster than the wind!", "💨"),
-            ("\"AGAIN! AGAIN!\" \(childName) shouted, running back to the ladder with the biggest smile in the whole wide world.", "😄"),
-            ("That night, snuggled in bed, \(childName) whispered, \"I was brave today.\" And the stars outside twinkled as if to say, \"Yes, you were.\"", "⭐"),
-            ("Mom kissed \(childName)'s forehead. \"You can do anything you set your mind to,\" she said softly.", "💛"),
-            ("And \(childName) drifted off to sleep, dreaming of tomorrow's adventures. The End.", "🌙"),
+            ("Once upon a time, \(childName) woke up to a beautiful sunny morning. Today was going to be a very special day!", "sunrise.fill"),
+            ("\(childName) put on their favorite outfit and looked in the mirror with a big smile. \"Today I'm going to be brave!\" they said.", "face.smiling"),
+            ("At the park, \(childName) saw a tall, twisty slide that reached up to the clouds. Other kids zoomed down it, laughing and cheering.", "figure.play"),
+            ("\(childName) felt butterflies in their tummy. \"It's so high up,\" they whispered, looking at the very top.", "butterfly.fill"),
+            ("A friendly squirrel appeared on the railing. \"Don't worry,\" it seemed to say with its twitchy nose. \"I'll climb with you!\"", "hare.fill"),
+            ("Step by step, \(childName) climbed the ladder. One step, two steps, three steps — almost there!", "ladder.fill"),
+            ("At the top, \(childName) could see the whole park! The trees looked like tiny broccoli and the people looked like ants.", "tree.fill"),
+            ("\(childName) sat down, took a deep breath, and... WHOOOOSH! Down the slide they went, faster than the wind!", "wind"),
+            ("\"AGAIN! AGAIN!\" \(childName) shouted, running back to the ladder with the biggest smile in the whole wide world.", "face.smiling.inverse"),
+            ("That night, snuggled in bed, \(childName) whispered, \"I was brave today.\" And the stars outside twinkled as if to say, \"Yes, you were.\"", "star.fill"),
+            ("Mom kissed \(childName)'s forehead. \"You can do anything you set your mind to,\" she said softly.", "heart.fill"),
+            ("And \(childName) drifted off to sleep, dreaming of tomorrow's adventures. The End.", "moon.stars.fill"),
         ]
 
         let pages = (0..<min(pageCount, samplePages.count)).map { i in

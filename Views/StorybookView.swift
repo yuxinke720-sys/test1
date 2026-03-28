@@ -78,8 +78,9 @@ struct StorybookView: View {
                 LinearGradient(colors: [Color(hex: "1A1042"), Color(hex: "0D0C18")], startPoint: .top, endPoint: .bottom)
 
                 if storyVM.currentPage < story.pages.count {
-                    Text(story.pages[storyVM.currentPage].emoji)
-                        .font(.system(size: 90))
+                    Image(systemName: story.pages[storyVM.currentPage].emoji)
+                        .font(.system(size: 72, weight: .light))
+                        .foregroundColor(.white.opacity(0.8))
                         .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
                                                 removal: .move(edge: .leading).combined(with: .opacity)))
                         .id(storyVM.currentPage)
@@ -87,12 +88,12 @@ struct StorybookView: View {
 
                 if showOverlay && storyVM.currentPage == 0 {
                     HStack {
-                        VStack(spacing: 4) { Text("◀").font(.system(size: 22)).foregroundColor(.white.opacity(0.5)); Text("Prev").font(.system(size: 9)).foregroundColor(.white.opacity(0.35)) }
+                        VStack(spacing: 4) { Image(systemName: "chevron.left").font(.system(size: 20, weight: .medium)).foregroundColor(.white.opacity(0.5)); Text("Prev").font(.system(size: 9)).foregroundColor(.white.opacity(0.35)) }
                         Spacer()
                         Text("Tap to turn pages").font(.system(size: 10, weight: .regular)).foregroundColor(.white.opacity(0.6))
                             .padding(.horizontal, 14).padding(.vertical, 5).background(Color.white.opacity(0.15)).clipShape(Capsule())
                         Spacer()
-                        VStack(spacing: 4) { Text("▶").font(.system(size: 22)).foregroundColor(.white.opacity(0.5)); Text("Next").font(.system(size: 9)).foregroundColor(.white.opacity(0.35)) }
+                        VStack(spacing: 4) { Image(systemName: "chevron.right").font(.system(size: 20, weight: .medium)).foregroundColor(.white.opacity(0.5)); Text("Next").font(.system(size: 9)).foregroundColor(.white.opacity(0.35)) }
                     }.padding(.horizontal, 20)
                 }
             }.frame(maxHeight: .infinity)
@@ -118,13 +119,13 @@ struct StorybookView: View {
     private func topBar(story: Story) -> some View {
         HStack {
             Button { exitReading() } label: {
-                Text("✕").font(.system(size: 16)).foregroundColor(.white)
+                Image(systemName: "xmark").font(.system(size: 14, weight: .medium)).foregroundColor(.white)
                     .frame(width: 32, height: 32).background(Color.white.opacity(0.15)).clipShape(Circle())
             }
             Spacer()
             Text(story.title).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
             Spacer()
-            Text("···").font(.system(size: 18)).foregroundColor(.white.opacity(0.7))
+            Image(systemName: "ellipsis").font(.system(size: 18, weight: .medium)).foregroundColor(.white.opacity(0.7))
         }
         .padding(.horizontal, 16).padding(.top, 50).padding(.bottom, 12)
         .background(LinearGradient(colors: [Color(hex: "0D0C18").opacity(0.85), .clear], startPoint: .top, endPoint: .bottom))
@@ -144,10 +145,10 @@ struct StorybookView: View {
                 }
             }
             HStack(spacing: 24) {
-                readerAction(icon: storyVM.currentStory?.isFavorite == true ? "♥" : "♡", label: "Save") { storyVM.toggleFavorite() }
-                readerAction(icon: "↗", label: "Share") { currentScreen = .share }
-                readerAction(icon: "🔊", label: "Read") {}
-                readerAction(icon: "⟳", label: "Redo") {}
+                readerAction(icon: storyVM.currentStory?.isFavorite == true ? "heart.fill" : "heart", label: "Save") { storyVM.toggleFavorite() }
+                readerAction(icon: "square.and.arrow.up", label: "Share") { currentScreen = .share }
+                readerAction(icon: "speaker.wave.2.fill", label: "Read") {}
+                readerAction(icon: "arrow.counterclockwise", label: "Redo") {}
             }
         }
         .padding(.horizontal, 18).padding(.vertical, 14)
@@ -157,7 +158,7 @@ struct StorybookView: View {
     private func readerAction(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 2) {
-                Text(icon).font(.system(size: 20))
+                Image(systemName: icon).font(.system(size: 18, weight: .medium)).foregroundColor(.white)
                 Text(label).font(.system(size: 8)).foregroundColor(.white.opacity(0.4))
             }
         }
@@ -213,7 +214,7 @@ struct StorybookView: View {
                 Spacer()
 
                 VStack(spacing: 16) {
-                    Text("✨").font(.system(size: 48))
+                    Image(systemName: "sparkles").font(.system(size: 44, weight: .medium)).foregroundColor(Color(hex: "FFD93D"))
                     Text("The End!").font(.system(size: 32, weight: .black)).foregroundColor(.white)
                     Text(story.title).font(.system(size: 16)).foregroundColor(.white.opacity(0.7))
                     Spacer().frame(height: 8)

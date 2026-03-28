@@ -40,9 +40,9 @@ enum StoryStyle: String, Codable, CaseIterable, Equatable {
     case fantasy = "Fantasy"
     var emoji: String {
         switch self {
-        case .warmCozy: return "🌸"
-        case .adventure: return "🚀"
-        case .fantasy: return "✨"
+        case .warmCozy: return "heart.fill"
+        case .adventure: return "airplane"
+        case .fantasy: return "sparkles"
         }
     }
 }
