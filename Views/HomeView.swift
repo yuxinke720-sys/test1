@@ -373,7 +373,7 @@ struct HomeView: View {
     // MARK: - Recent Books
     private var recentBooksSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(title: "Recent Books", action: "See all")
+            sectionHeader(title: "Recent Books", action: "See all") { currentScreen = .myBooks }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -399,8 +399,9 @@ struct HomeView: View {
                             )
                             .onTapGesture {
                                 storyVM.currentStory = story
-                                storyVM.currentPage = 0
+                                storyVM.currentPage = min(story.lastReadPage, max(story.pages.count - 1, 0))
                                 storyVM.markAsRead(story)
+                                storyVM.previousScreen = .home
                                 currentScreen = .storybook
                             }
                         }
@@ -460,6 +461,7 @@ struct HomeView: View {
         }
         storyVM.currentStory = Story(title: title, childName: storyVM.childName, theme: theme, pages: pages)
         storyVM.currentPage = 0
+        storyVM.previousScreen = .home
         currentScreen = .storybook
     }
 
@@ -490,7 +492,7 @@ struct HomeView: View {
     }
 
     // MARK: - Section Header
-    private func sectionHeader(icon: String? = nil, title: String, action: String? = nil) -> some View {
+    private func sectionHeader(icon: String? = nil, title: String, action: String? = nil, onAction: (() -> Void)? = nil) -> some View {
         HStack(spacing: 6) {
             if let icon {
                 Image(systemName: icon)
@@ -502,13 +504,17 @@ struct HomeView: View {
                 .foregroundColor(Color(hex: "1E1C1A"))
             Spacer()
             if let action {
-                HStack(spacing: 3) {
-                    Text(action)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .bold))
+                Button {
+                    onAction?()
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(action)
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundColor(Color(hex: "FF8C6B"))
                 }
-                .foregroundColor(Color(hex: "FF8C6B"))
             }
         }
         .padding(.horizontal, 18)

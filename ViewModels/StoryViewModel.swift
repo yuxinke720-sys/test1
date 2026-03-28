@@ -20,8 +20,20 @@ class StoryViewModel: ObservableObject {
     @Published var currentPage: Int = 0
     @Published var errorMessage: String?
 
+    // Navigation
+    var previousScreen: AppScreen = .home
+
     // Saved stories
     @Published var savedStories: [Story] = []
+
+    // MARK: - Persistence Keys
+    private static let savedStoriesKey = "savedStories"
+    private static let lastStoryIDKey = "lastStoryID"
+    private static let lastPageKey = "lastPage"
+
+    init() {
+        loadSavedStories()
+    }
 
     let themeChips = [
         ("🦁", "Be Brave"),
@@ -112,6 +124,14 @@ class StoryViewModel: ObservableObject {
         currentStory?.isFavorite.toggle()
     }
 
+    /// Resets page to 0 if the user finished the story (reached the last page).
+    func resetPageIfFinished() {
+        guard let story = currentStory else { return }
+        if currentPage >= story.pages.count - 1 {
+            currentPage = 0
+        }
+    }
+
     func saveStory() {
         guard let story = currentStory else { return }
         if let index = savedStories.firstIndex(where: { $0.id == story.id }) {
@@ -119,6 +139,7 @@ class StoryViewModel: ObservableObject {
         } else {
             savedStories.insert(story, at: 0)
         }
+        persistSavedStories()
     }
 
     /// The 3 most recently read stories, sorted by lastReadAt descending.
@@ -133,6 +154,7 @@ class StoryViewModel: ObservableObject {
     func markAsRead(_ story: Story) {
         if let index = savedStories.firstIndex(where: { $0.id == story.id }) {
             savedStories[index].lastReadAt = Date()
+            persistSavedStories()
         }
     }
 
@@ -161,6 +183,48 @@ class StoryViewModel: ObservableObject {
         generationStage = .writing
         generationProgress = 0
         errorMessage = nil
+    }
+
+    // MARK: - Persistence
+
+    private func loadSavedStories() {
+        guard let data = UserDefaults.standard.data(forKey: Self.savedStoriesKey),
+              let stories = try? JSONDecoder().decode([Story].self, from: data)
+        else { return }
+        savedStories = stories
+    }
+
+    func persistSavedStories() {
+        if let data = try? JSONEncoder().encode(savedStories) {
+            UserDefaults.standard.set(data, forKey: Self.savedStoriesKey)
+        }
+    }
+
+    func persistReadingState() {
+        if let story = currentStory {
+            UserDefaults.standard.set(story.id.uuidString, forKey: Self.lastStoryIDKey)
+            // Save page progress back into the story in savedStories
+            if let index = savedStories.firstIndex(where: { $0.id == story.id }) {
+                savedStories[index].lastReadPage = currentPage
+                persistSavedStories()
+            }
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.lastStoryIDKey)
+        }
+        UserDefaults.standard.set(currentPage, forKey: Self.lastPageKey)
+    }
+
+    /// Attempts to restore the last reading session. Returns `true` if successful.
+    func restoreLastReading() -> Bool {
+        guard let idString = UserDefaults.standard.string(forKey: Self.lastStoryIDKey),
+              let id = UUID(uuidString: idString),
+              let story = savedStories.first(where: { $0.id == id })
+        else { return false }
+
+        currentStory = story
+        let page = UserDefaults.standard.integer(forKey: Self.lastPageKey)
+        currentPage = page < story.pages.count ? page : 0
+        return true
     }
 }
 

@@ -62,6 +62,16 @@ struct StorybookView: View {
         }
     }
 
+    // MARK: - Exit Helper
+
+    private func exitReading() {
+        storyVM.resetPageIfFinished()
+        storyVM.saveStory()
+        currentScreen = storyVM.previousScreen
+    }
+
+    // MARK: - Page Content
+
     private func pageContent(story: Story) -> some View {
         VStack(spacing: 0) {
             ZStack {
@@ -103,9 +113,11 @@ struct StorybookView: View {
         }
     }
 
+    // MARK: - Reader Top Bar
+
     private func topBar(story: Story) -> some View {
         HStack {
-            Button { currentScreen = .home; storyVM.saveStory() } label: {
+            Button { exitReading() } label: {
                 Text("✕").font(.system(size: 16)).foregroundColor(.white)
                     .frame(width: 32, height: 32).background(Color.white.opacity(0.15)).clipShape(Circle())
             }
@@ -117,6 +129,8 @@ struct StorybookView: View {
         .padding(.horizontal, 16).padding(.top, 50).padding(.bottom, 12)
         .background(LinearGradient(colors: [Color(hex: "0D0C18").opacity(0.85), .clear], startPoint: .top, endPoint: .bottom))
     }
+
+    // MARK: - Reader Bottom Bar
 
     private func bottomBar(story: Story) -> some View {
         VStack(spacing: 10) {
@@ -149,28 +163,80 @@ struct StorybookView: View {
         }
     }
 
+    // MARK: - Completion Overlay ("The End")
+
     private func completionOverlay(story: Story) -> some View {
         ZStack {
             Color.black.opacity(0.7).ignoresSafeArea()
-            VStack(spacing: 16) {
-                Text("✨").font(.system(size: 48))
-                Text("The End!").font(.system(size: 32, weight: .black)).foregroundColor(.white)
-                Text(story.title).font(.system(size: 16)).foregroundColor(.white.opacity(0.7))
-                Spacer().frame(height: 8)
-                Button { storyVM.currentPage = 0; showCompletion = false } label: {
-                    Text("Read Again").font(.system(size: 15, weight: .bold)).foregroundColor(Color(hex: "FF8C6B"))
-                        .frame(maxWidth: .infinity).frame(height: 50).background(Color.white).clipShape(Capsule())
+
+            VStack(spacing: 0) {
+                // Top bar
+                VStack(spacing: 0) {
+                    HStack {
+                        Button {
+                            showCompletion = false
+                            exitReading()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(Color(hex: "FF8C6B"))
+                                .frame(width: 36, height: 36)
+                        }
+                        Spacer()
+                        Text(story.title)
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.85))
+                        Spacer()
+                        Color.clear.frame(width: 36, height: 36)
+                    }
+                    .padding(.horizontal, 18)
+                    .frame(height: 52)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(hex: "1A1042").opacity(0.95), Color(hex: "0D0C18").opacity(0.85)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .shadow(color: Color(hex: "FFD93D").opacity(0.15), radius: 10, x: 0, y: 4)
+
+                    // Warm accent bottom border
+                    LinearGradient(
+                        colors: [Color(hex: "FFD93D").opacity(0.5), Color(hex: "FF8C6B").opacity(0.4)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(height: 1)
                 }
-                Button { storyVM.saveStory(); currentScreen = .share } label: {
-                    Text("Save & Share").font(.system(size: 15, weight: .bold)).foregroundColor(.white)
-                        .frame(maxWidth: .infinity).frame(height: 50)
-                        .background(LinearGradient(colors: [Color(hex: "FF8C6B"), Color(hex: "E86D4A")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .clipShape(Capsule()).shadow(color: Color(hex: "FF8C6B").opacity(0.4), radius: 10, y: 4)
-                }
-                Button { storyVM.resetForNewStory(); currentScreen = .home } label: {
-                    Text("Create Another Story").font(.system(size: 13, weight: .regular)).foregroundColor(.white.opacity(0.6)).frame(height: 40)
-                }
-            }.padding(.horizontal, 40)
+
+                // Content
+                Spacer()
+
+                VStack(spacing: 16) {
+                    Text("✨").font(.system(size: 48))
+                    Text("The End!").font(.system(size: 32, weight: .black)).foregroundColor(.white)
+                    Text(story.title).font(.system(size: 16)).foregroundColor(.white.opacity(0.7))
+                    Spacer().frame(height: 8)
+                    Button { storyVM.currentPage = 0; showCompletion = false } label: {
+                        Text("Read Again").font(.system(size: 15, weight: .bold)).foregroundColor(Color(hex: "FF8C6B"))
+                            .frame(maxWidth: .infinity).frame(height: 50).background(Color.white).clipShape(Capsule())
+                    }
+                    Button { storyVM.saveStory(); currentScreen = .share } label: {
+                        Text("Save & Share").font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity).frame(height: 50)
+                            .background(LinearGradient(colors: [Color(hex: "FF8C6B"), Color(hex: "E86D4A")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .clipShape(Capsule()).shadow(color: Color(hex: "FF8C6B").opacity(0.4), radius: 10, y: 4)
+                    }
+                    Button {
+                        storyVM.resetForNewStory()
+                        currentScreen = .home
+                    } label: {
+                        Text("Create Another Story").font(.system(size: 13, weight: .regular)).foregroundColor(.white.opacity(0.6)).frame(height: 40)
+                    }
+                }.padding(.horizontal, 40)
+
+                Spacer()
+            }
         }
     }
 }

@@ -39,7 +39,7 @@ struct MyBooksView: View {
                             LazyVGrid(columns: columns, spacing: 12) {
                                 ForEach(allBooks) { book in
                                     bookGridCard(book: book).onTapGesture {
-                                        storyVM.currentStory = book; storyVM.currentPage = 0; currentScreen = .storybook
+                                        storyVM.currentStory = book; storyVM.currentPage = min(book.lastReadPage, max(book.pages.count - 1, 0)); storyVM.previousScreen = .myBooks; currentScreen = .storybook
                                     }
                                 }
                             }.padding(.horizontal, 18)

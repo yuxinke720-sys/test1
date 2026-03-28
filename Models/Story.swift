@@ -8,6 +8,7 @@ struct Story: Identifiable, Codable, Equatable {
     var pages: [StoryPage]
     var createdAt: Date
     var lastReadAt: Date?
+    var lastReadPage: Int
     var isFavorite: Bool
     init(
         id: UUID = UUID(),
@@ -18,6 +19,7 @@ struct Story: Identifiable, Codable, Equatable {
         pages: [StoryPage] = [],
         createdAt: Date = Date(),
         lastReadAt: Date? = nil,
+        lastReadPage: Int = 0,
         isFavorite: Bool = false
     ) {
         self.id = id
@@ -28,6 +30,7 @@ struct Story: Identifiable, Codable, Equatable {
         self.pages = pages
         self.createdAt = createdAt
         self.lastReadAt = lastReadAt
+        self.lastReadPage = lastReadPage
         self.isFavorite = isFavorite
     }
 }

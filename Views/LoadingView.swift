@@ -83,7 +83,7 @@ struct LoadingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear { startFunFactRotation() }
-        .onChange(of: storyVM.currentStory) { if storyVM.currentStory != nil { currentScreen = .storybook } }
+        .onChange(of: storyVM.currentStory) { if storyVM.currentStory != nil { storyVM.previousScreen = .home; currentScreen = .storybook } }
     }
 
     private func sfIconForStage(_ stage: GenerationStage) -> String {

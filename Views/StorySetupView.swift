@@ -150,7 +150,7 @@ struct StorySetupView: View {
         VStack(spacing: 7) {
             Button {
                 currentScreen = .loading
-                Task { await storyVM.generateStory(); if storyVM.currentStory != nil { currentScreen = .storybook } }
+                Task { await storyVM.generateStory(); if storyVM.currentStory != nil { storyVM.previousScreen = .home; currentScreen = .storybook } }
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles").font(.system(size: 14, weight: .bold))

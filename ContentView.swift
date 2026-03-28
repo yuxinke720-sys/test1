@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum AppScreen: Equatable {
+enum AppScreen: String, Equatable {
     case home
     case photoUpload
     case storySetup
@@ -15,7 +15,8 @@ enum AppScreen: Equatable {
 struct ContentView: View {
     @StateObject private var storyVM = StoryViewModel()
     @StateObject private var photoVM = PhotoViewModel()
-    @State private var currentScreen: AppScreen = .home
+    @AppStorage("lastScreen") private var currentScreen: AppScreen = .home
+    @State private var hasRestoredState = false
 
     var body: some View {
         ZStack {
@@ -78,10 +79,34 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeInOut(duration: 0.25), value: currentScreen)
+        .onAppear {
+            guard !hasRestoredState else { return }
+            hasRestoredState = true
+
+            // Transient screens should not survive a relaunch
+            if currentScreen == .loading || currentScreen == .share {
+                currentScreen = .home
+                return
+            }
+
+            // Restore story reading state
+            if currentScreen == .storybook {
+                if !storyVM.restoreLastReading() {
+                    currentScreen = .home
+                }
+            }
+        }
         .onChange(of: currentScreen) { oldValue, newValue in
             if newValue == .photoUpload && oldValue != .storySetup {
                 photoVM.reset()
             }
+            storyVM.persistReadingState()
+        }
+        .onChange(of: storyVM.currentPage) {
+            storyVM.persistReadingState()
+        }
+        .onChange(of: storyVM.currentStory) {
+            storyVM.persistReadingState()
         }
     }
 }

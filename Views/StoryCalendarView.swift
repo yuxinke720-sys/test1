@@ -4,6 +4,7 @@ struct StoryCalendarView: View {
     @ObservedObject var storyVM: StoryViewModel
     @Binding var currentScreen: AppScreen
     @State private var displayedMonth = Date()
+    @State private var selectedDay: Int?
 
     private let calendar = Calendar.current
     private let weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -88,6 +89,7 @@ struct StoryCalendarView: View {
         HStack {
             Button {
                 displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                selectedDay = nil
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 14, weight: .semibold))
@@ -102,6 +104,7 @@ struct StoryCalendarView: View {
             Spacer()
             Button {
                 displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                selectedDay = nil
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
@@ -144,13 +147,16 @@ struct StoryCalendarView: View {
                 if let day = item.day {
                     let hasStory = storyDaysMap[day] != nil
                     let isToday = day == todayDay && currentMonth
+                    let isSelected = selectedDay == day
 
-                    calendarDayCell(day: day, hasStory: hasStory, isToday: isToday)
+                    calendarDayCell(day: day, hasStory: hasStory, isToday: isToday, isSelected: isSelected)
                         .onTapGesture {
+                            selectedDay = day
                             if let story = storyDaysMap[day] {
                                 storyVM.currentStory = story
-                                storyVM.currentPage = 0
+                                storyVM.currentPage = min(story.lastReadPage, max(story.pages.count - 1, 0))
                                 storyVM.markAsRead(story)
+                                storyVM.previousScreen = .storyCalendar
                                 currentScreen = .storybook
                             }
                         }
@@ -169,30 +175,38 @@ struct StoryCalendarView: View {
         HStack(spacing: 16) {
             legendDot(color: Color(hex: "E8705A"), label: "Has story")
             legendDot(color: Color(hex: "1A1814"), label: "Today")
+            legendDot(color: Color.gray.opacity(0.5), label: "Viewed")
         }
         .padding(.bottom, 16)
     }
 
     // MARK: - Day Cell
 
-    private func calendarDayCell(day: Int, hasStory: Bool, isToday: Bool) -> some View {
-        VStack(spacing: 3) {
-            Text("\(day)")
-                .font(.system(size: 14, weight: isToday ? .black : hasStory ? .bold : .medium,
-                              design: .rounded))
-                .foregroundColor(
-                    isToday ? .white :
-                    hasStory ? Color(hex: "7A6200") :
-                    Color(hex: "5C5750")
-                )
+    private func calendarDayCell(day: Int, hasStory: Bool, isToday: Bool, isSelected: Bool) -> some View {
+        ZStack {
+            VStack(spacing: 3) {
+                Text("\(day)")
+                    .font(.system(size: 14, weight: isToday ? .black : hasStory ? .bold : .medium,
+                                  design: .rounded))
+                    .foregroundColor(
+                        isToday ? .white :
+                        hasStory ? Color(hex: "7A6200") :
+                        Color(hex: "5C5750")
+                    )
 
-            Circle()
-                .fill(
-                    isToday && hasStory ? Color.white.opacity(0.9) :
-                    hasStory ? Color(hex: "E8705A") :
-                    Color.clear
-                )
-                .frame(width: 6, height: 6)
+                Circle()
+                    .fill(
+                        isToday && hasStory ? Color.white.opacity(0.9) :
+                        hasStory ? Color(hex: "E8705A") :
+                        Color.clear
+                    )
+                    .frame(width: 6, height: 6)
+            }
+
+            if isSelected {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.25))
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 46)
@@ -251,9 +265,11 @@ struct StoryCalendarView: View {
                 ForEach(monthStories) { story in
                     calendarEntryRow(story: story)
                         .onTapGesture {
+                            selectedDay = calendar.component(.day, from: story.createdAt)
                             storyVM.currentStory = story
-                            storyVM.currentPage = 0
+                            storyVM.currentPage = min(story.lastReadPage, max(story.pages.count - 1, 0))
                             storyVM.markAsRead(story)
+                            storyVM.previousScreen = .storyCalendar
                             currentScreen = .storybook
                         }
                 }
