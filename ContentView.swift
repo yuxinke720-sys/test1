@@ -9,6 +9,7 @@ enum AppScreen: Equatable {
     case share
     case myBooks
     case profile
+    case storyCalendar
 }
 
 struct ContentView: View {
@@ -69,6 +70,10 @@ struct ContentView: View {
             case .profile:
                 ProfileView(storyVM: storyVM, currentScreen: $currentScreen)
                     .transition(.opacity)
+
+            case .storyCalendar:
+                StoryCalendarView(storyVM: storyVM, currentScreen: $currentScreen)
+                    .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -83,5 +88,4 @@ struct ContentView: View {
 
 #Preview("ContentView") {
     ContentView()
-        .previewDevice("iPhone 15 Pro")
 }

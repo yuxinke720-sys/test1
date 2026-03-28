@@ -121,6 +121,35 @@ class StoryViewModel: ObservableObject {
         }
     }
 
+    /// The 3 most recently read stories, sorted by lastReadAt descending.
+    var recentlyReadStories: [Story] {
+        savedStories
+            .filter { $0.lastReadAt != nil }
+            .sorted { ($0.lastReadAt ?? .distantPast) > ($1.lastReadAt ?? .distantPast) }
+            .prefix(3)
+            .map { $0 }
+    }
+
+    func markAsRead(_ story: Story) {
+        if let index = savedStories.firstIndex(where: { $0.id == story.id }) {
+            savedStories[index].lastReadAt = Date()
+        }
+    }
+
+    /// Returns days in a given month that have stories.
+    func storyDays(for date: Date) -> [Int: Story] {
+        let calendar = Calendar.current
+        var result: [Int: Story] = [:]
+        for story in savedStories {
+            let comps = calendar.dateComponents([.year, .month, .day], from: story.createdAt)
+            let dateComps = calendar.dateComponents([.year, .month], from: date)
+            if comps.year == dateComps.year && comps.month == dateComps.month, let day = comps.day {
+                result[day] = story
+            }
+        }
+        return result
+    }
+
     func resetForNewStory() {
         theme = ""
         selectedThemeChip = nil

@@ -119,7 +119,7 @@ struct ProfileView: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(storyVM.childName).font(.system(size: 15, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
-                    Text("Age 4 · \(storyVM.savedStories.count) stories").font(.system(size: 11)).foregroundColor(Color(hex: "7A756E"))
+                    Text("Age 2 · \(storyVM.savedStories.count) stories").font(.system(size: 11)).foregroundColor(Color(hex: "7A756E"))
                 }
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .medium)).foregroundColor(Color(hex: "B8B3AC"))
@@ -168,4 +168,8 @@ struct ProfileView: View {
         }
         .padding(.bottom, 14)
     }
+}
+#Preview("ContentView") {
+    ContentView()
+        .previewDevice("iPhone 15 Pro")
 }

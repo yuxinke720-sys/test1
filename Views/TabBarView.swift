@@ -59,3 +59,6 @@ func smTabBar(active: TabBarItem, currentScreen: Binding<AppScreen>) -> some Vie
             .ignoresSafeArea(edges: .bottom)
     )
 }
+#Preview("ContentView") {
+    ContentView()
+}

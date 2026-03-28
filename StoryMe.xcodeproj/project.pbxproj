@@ -24,6 +24,7 @@
 		A54E2B6C024312477D61828B /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E459D2A9DF2D1F1CDFF1F8 /* TabBarView.swift */; };
 		C1B07196D813A4C92C17D7DB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5F3D51BC4F3C5F34E06C2120 /* Assets.xcassets */; };
 		D181C8F462E18AD5FBEE7B14 /* MyBooksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2559185F63C59BCBB0403BEB /* MyBooksView.swift */; };
+		ED811BC715839CD9BE8BF144 /* StoryCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3B3E0E736228FDFA9C9C1B3 /* StoryCalendarView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +45,7 @@
 		99E459D2A9DF2D1F1CDFF1F8 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
 		BE4CA29C999D71A4695C6BEE /* StoryMeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryMeApp.swift; sourceTree = "<group>"; };
 		C25E26BCD21C05D3D8D7D21A /* PhotoViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoViewModel.swift; sourceTree = "<group>"; };
+		E3B3E0E736228FDFA9C9C1B3 /* StoryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryCalendarView.swift; sourceTree = "<group>"; };
 		F105A20727D22943FF9A31DC /* Story.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -106,6 +108,7 @@
 				041929E2404224D232716927 /* ProfileView.swift */,
 				234A030F30484936B98D4335 /* ShareView.swift */,
 				3527429415A921855DF5AC52 /* StorybookView.swift */,
+				E3B3E0E736228FDFA9C9C1B3 /* StoryCalendarView.swift */,
 				1B199C9EE55440AFA0D4EDBA /* StorySetupView.swift */,
 				99E459D2A9DF2D1F1CDFF1F8 /* TabBarView.swift */,
 			);
@@ -192,6 +195,7 @@
 				5E6F2D22E0C3C2DEBCD347DB /* ProfileView.swift in Sources */,
 				5C9D32BF061CD2E64A7D5587 /* ShareView.swift in Sources */,
 				9ECB936FEB986D3900447423 /* Story.swift in Sources */,
+				ED811BC715839CD9BE8BF144 /* StoryCalendarView.swift in Sources */,
 				99D6ECF4D4095E154709C110 /* StoryMeApp.swift in Sources */,
 				7DB7A194BC87ACABFED04F39 /* StoryPage.swift in Sources */,
 				1476AB5EDABC2FBF40AD9EBC /* StorySetupView.swift in Sources */,
