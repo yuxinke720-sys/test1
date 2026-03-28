@@ -7,147 +7,74 @@ struct StoryCalendarView: View {
 
     private let calendar = Calendar.current
     private let weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    private let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
 
     var body: some View {
         ZStack {
-            Color(hex: "F7F3ED").ignoresSafeArea()
+            Color(hex: "F7F3ED")
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // MARK: - Title Bar
-                VStack(spacing: 4) {
-                    HStack {
-                        Button {
-                            currentScreen = .home
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(Color(hex: "E8705A"))
-                                .frame(width: 36, height: 36)
-                        }
-                        Spacer()
-                        Text("Story Calendar")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(hex: "1A1814"))
-                        Spacer()
-                        Color.clear.frame(width: 36, height: 36)
-                    }
-                    .padding(.horizontal, 18)
-
-                    Text("Full calendar view — tap a day to see the story")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundColor(Color(hex: "A09890"))
-                }
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-                .frame(maxWidth: .infinity)
-
-                // MARK: - Scrollable Content
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        calendarCard
-                        entriesList
-                    }
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
-                    .frame(maxWidth: .infinity)
-                }
-
+                titleBar
+                scrollableContent
                 smTabBar(active: .home, currentScreen: $currentScreen)
             }
         }
     }
 
-    // MARK: - Calendar Card
-    private var calendarCard: some View {
-        VStack(spacing: 0) {
-            // Month navigation
+    // MARK: - Title Bar
+
+    private var titleBar: some View {
+        VStack(spacing: 4) {
             HStack {
                 Button {
-                    displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                    currentScreen = .home
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(Color(hex: "E8705A"))
                         .frame(width: 36, height: 36)
-                        .background(Color(hex: "FFF0EC").cornerRadius(10))
                 }
                 Spacer()
-                Text(monthYearString(displayedMonth))
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                Text("Story Calendar")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(Color(hex: "1A1814"))
                 Spacer()
-                Button {
-                    displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "E8705A"))
-                        .frame(width: 36, height: 36)
-                        .background(Color(hex: "FFF0EC").cornerRadius(10))
-                }
+                Color.clear.frame(width: 36, height: 36)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 18)
-            .padding(.bottom, 14)
+            .padding(.horizontal, 18)
 
-            // Weekday labels
-            let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+            Text("Full calendar view — tap a day to see the story")
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundColor(Color(hex: "A09890"))
+        }
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity)
+    }
 
-            LazyVGrid(columns: columns, spacing: 0) {
-                ForEach(weekdayLabels, id: \.self) { label in
-                    Text(label)
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundColor(
-                            label == "Sun" || label == "Sat"
-                                ? Color(hex: "D4A07A")
-                                : Color(hex: "A09890")
-                        )
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 24)
-                }
+    // MARK: - Scrollable Content
+
+    private var scrollableContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                calendarCard
+                entriesList
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 6)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+            .frame(maxWidth: .infinity)
+        }
+    }
 
-            // Day grid
-            let days = calendarDays()
-            let storyDaysMap = storyVM.storyDays(for: displayedMonth)
-            let todayDay = todayDayNumber()
-            let currentMonth = isCurrentMonth()
+    // MARK: - Calendar Card
 
-            LazyVGrid(columns: columns, spacing: 5) {
-                ForEach(days) { item in
-                    if let day = item.day {
-                        let hasStory = storyDaysMap[day] != nil
-                        let isToday = day == todayDay && currentMonth
-
-                        calendarDayCell(day: day, hasStory: hasStory, isToday: isToday)
-                            .onTapGesture {
-                                if let story = storyDaysMap[day] {
-                                    storyVM.currentStory = story
-                                    storyVM.currentPage = 0
-                                    storyVM.markAsRead(story)
-                                    currentScreen = .storybook
-                                } else {
-                                    currentScreen = .storyCalendar
-                                }
-                            }
-                    } else {
-                        Color.clear
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 16)
-
-            // Legend
-            HStack(spacing: 16) {
-                legendDot(color: Color(hex: "E8705A"), label: "Has story")
-                legendDot(color: Color(hex: "1A1814"), label: "Today")
-            }
-            .padding(.bottom, 16)
+    private var calendarCard: some View {
+        VStack(spacing: 0) {
+            monthNavigator
+            weekdayHeader
+            dayGrid
+            legend
         }
         .background(
             RoundedRectangle(cornerRadius: 22)
@@ -155,10 +82,99 @@ struct StoryCalendarView: View {
                 .shadow(color: Color(hex: "E8D9C8").opacity(0.4), radius: 14, y: 6)
         )
         .padding(.horizontal, 18)
-        .frame(maxWidth: .infinity)
+    }
+
+    private var monthNavigator: some View {
+        HStack {
+            Button {
+                displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(hex: "E8705A"))
+                    .frame(width: 36, height: 36)
+                    .background(Color(hex: "FFF0EC").cornerRadius(10))
+            }
+            Spacer()
+            Text(monthYearString(displayedMonth))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundColor(Color(hex: "1A1814"))
+            Spacer()
+            Button {
+                displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(hex: "E8705A"))
+                    .frame(width: 36, height: 36)
+                    .background(Color(hex: "FFF0EC").cornerRadius(10))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 18)
+        .padding(.bottom, 14)
+    }
+
+    private var weekdayHeader: some View {
+        LazyVGrid(columns: gridColumns, spacing: 0) {
+            ForEach(weekdayLabels, id: \.self) { label in
+                Text(label)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(
+                        label == "Sun" || label == "Sat"
+                            ? Color(hex: "D4A07A")
+                            : Color(hex: "A09890")
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 24)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 6)
+    }
+
+    private var dayGrid: some View {
+        let days = calendarDays()
+        let storyDaysMap = storyVM.storyDays(for: displayedMonth)
+        let todayDay = todayDayNumber()
+        let currentMonth = isCurrentMonth()
+
+        return LazyVGrid(columns: gridColumns, spacing: 5) {
+            ForEach(days) { item in
+                if let day = item.day {
+                    let hasStory = storyDaysMap[day] != nil
+                    let isToday = day == todayDay && currentMonth
+
+                    calendarDayCell(day: day, hasStory: hasStory, isToday: isToday)
+                        .onTapGesture {
+                            if let story = storyDaysMap[day] {
+                                storyVM.currentStory = story
+                                storyVM.currentPage = 0
+                                storyVM.markAsRead(story)
+                                currentScreen = .storybook
+                            }
+                        }
+                } else {
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 16)
+    }
+
+    private var legend: some View {
+        HStack(spacing: 16) {
+            legendDot(color: Color(hex: "E8705A"), label: "Has story")
+            legendDot(color: Color(hex: "1A1814"), label: "Today")
+        }
+        .padding(.bottom, 16)
     }
 
     // MARK: - Day Cell
+
     private func calendarDayCell(day: Int, hasStory: Bool, isToday: Bool) -> some View {
         VStack(spacing: 3) {
             Text("\(day)")
@@ -206,6 +222,7 @@ struct StoryCalendarView: View {
     }
 
     // MARK: - Legend Dot
+
     private func legendDot(color: Color, label: String) -> some View {
         HStack(spacing: 5) {
             Circle()
@@ -218,6 +235,7 @@ struct StoryCalendarView: View {
     }
 
     // MARK: - Entries List
+
     private var entriesList: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("This month")
@@ -245,6 +263,7 @@ struct StoryCalendarView: View {
     }
 
     // MARK: - Empty State
+
     private var emptyState: some View {
         VStack(spacing: 10) {
             Spacer().frame(height: 12)
@@ -290,6 +309,7 @@ struct StoryCalendarView: View {
     }
 
     // MARK: - Entry Row
+
     private func calendarEntryRow(story: Story) -> some View {
         HStack(spacing: 12) {
             VStack(spacing: 1) {
