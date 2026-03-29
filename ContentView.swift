@@ -80,7 +80,7 @@ struct ContentView: View {
                     .transition(.opacity)
 
             case .storyLibrary:
-                StoryLibraryView(storyVM: storyVM, currentScreen: $currentScreen)
+                StoryTemplateView(storyVM: storyVM, currentScreen: $currentScreen)
                     .transition(.opacity)
 
             case .templatePreview:

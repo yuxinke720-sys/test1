@@ -7,8 +7,15 @@ import SwiftUI
 class GeminiService {
     static let shared = GeminiService()
 
-    // TODO: Replace with your actual Gemini API key
-    private let apiKey = "YOUR_GEMINI_API_KEY"
+    private let apiKey: String = {
+        guard let key = Bundle.main.infoDictionary?["GeminiAPIKey"] as? String,
+              !key.isEmpty, key != "YOUR_ACTUAL_KEY_HERE"
+        else {
+            print("⚠️ Gemini API key not set. Add your key to Secrets.xcconfig")
+            return ""
+        }
+        return key
+    }()
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
     private init() {}

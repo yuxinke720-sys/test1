@@ -5,14 +5,14 @@ struct StoryPage: Identifiable, Codable, Equatable {
     var pageNumber: Int
     var text: String
     var imageDescription: String
-    var emoji: String // Placeholder for AI-generated illustration
+    var emoji: String // SF Symbol name, placeholder for AI-generated illustration
 
     init(
         id: UUID = UUID(),
         pageNumber: Int = 0,
         text: String = "",
         imageDescription: String = "",
-        emoji: String = "📖"
+        emoji: String = "book.fill"
     ) {
         self.id = id
         self.pageNumber = pageNumber

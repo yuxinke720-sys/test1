@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct StoryLibraryView: View {
+struct StoryTemplateView: View {
     @ObservedObject var storyVM: StoryViewModel
     @Binding var currentScreen: AppScreen
 
@@ -41,8 +41,8 @@ struct StoryLibraryView: View {
     private var navBar: some View {
         HStack {
             Spacer()
-            Text("Story Library")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+            Text("Story Template")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundColor(Color(hex: "1A1814"))
             Spacer()
         }
@@ -243,4 +243,7 @@ struct StoryLibraryView: View {
             currentScreen = .templatePreview
         }
     }
+}
+#Preview("ContentView") {
+    ContentView()
 }
