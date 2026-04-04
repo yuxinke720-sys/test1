@@ -38,11 +38,18 @@ struct ShareView: View {
             HStack(spacing: 10) {
                 if let story = storyVM.currentStory {
                     ForEach(story.pages.prefix(4)) { page in
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(LinearGradient(colors: [Color(hex: "FFF5A0"), Color(hex: "FFF0EC")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 80, height: 100)
-                            .overlay(Image(systemName: page.emoji).font(.system(size: 26, weight: .medium)).foregroundColor(.white))
-                            .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
+                        Group {
+                            if let data = page.imageData, let img = UIImage(data: data) {
+                                Image(uiImage: img).resizable().scaledToFill()
+                                    .frame(width: 80, height: 100).clipped().cornerRadius(10)
+                            } else {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(LinearGradient(colors: [Color(hex: "FFF5A0"), Color(hex: "FFF0EC")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .frame(width: 80, height: 100)
+                                    .overlay(Image(systemName: page.emoji).font(.system(size: 26, weight: .medium)).foregroundColor(.white))
+                            }
+                        }
+                        .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
                     }
                 }
             }.padding(.horizontal, 20).padding(.vertical, 4)

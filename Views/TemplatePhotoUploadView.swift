@@ -152,18 +152,10 @@ struct TemplatePhotoUploadView: View {
     private var bottomButton: some View {
         VStack(spacing: 7) {
             Button {
-                currentScreen = .loading
-                Task {
-                    // Use the template to configure the story generation
-                    if let template = storyVM.selectedTemplate {
-                        storyVM.theme = template.styleContext.isEmpty ? template.title : template.styleContext
-                    }
-                    await storyVM.generateStory()
-                    if storyVM.currentStory != nil {
-                        storyVM.previousScreen = .home
-                        currentScreen = .storybook
-                    }
+                if let template = storyVM.selectedTemplate {
+                    storyVM.theme = template.styleContext.isEmpty ? template.title : template.styleContext
                 }
+                currentScreen = .loading
             } label: {
                 HStack(spacing: 6) {
                     if photoVM.isAnalyzing {

@@ -63,50 +63,49 @@ class StoryViewModel: ObservableObject {
     }
 
     func generateStory() async {
+        guard !isGenerating else {
+            print("[StoryVM] generateStory() skipped — already generating")
+            return
+        }
         isGenerating = true
         generationStage = .writing
         generationProgress = 0
         illustrationProgress = 0
         errorMessage = nil
 
+        let totalPages = pageCount.rawValue
+
         do {
-            // Stage 1: Writing (0-40%)
             generationStage = .writing
-            for i in 1...4 {
-                try await Task.sleep(nanoseconds: 400_000_000)
-                generationProgress = Double(i) * 10
-            }
+            generationProgress = 5
 
-            // Stage 2: Illustrating (40-90%)
-            generationStage = .illustrating
-            let totalPages = pageCount.rawValue
-            for i in 1...totalPages {
-                try await Task.sleep(nanoseconds: 300_000_000)
-                illustrationProgress = i
-                generationProgress = 40 + (Double(i) / Double(totalPages)) * 50
-            }
-
-            // Stage 3: Final touches (90-100%)
-            generationStage = .finalizing
-            try await Task.sleep(nanoseconds: 600_000_000)
-            generationProgress = 100
-
-            // Generate the story
             let story = try await GeminiService.shared.generateStory(
                 childName: childName,
                 theme: theme,
                 style: selectedStyle,
-                pageCount: pageCount.rawValue
+                pageCount: totalPages,
+                onPageIllustrated: { [weak self] completed in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        self.generationStage = .illustrating
+                        self.illustrationProgress = completed
+                        self.generationProgress = 40 + (Double(completed) / Double(totalPages)) * 50
+                    }
+                }
             )
 
-            try await Task.sleep(nanoseconds: 500_000_000)
+            generationStage = .finalizing
+            generationProgress = 95
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            generationProgress = 100
+
             currentStory = story
             currentPage = 0
-            isGenerating = false
         } catch {
             errorMessage = error.localizedDescription
-            isGenerating = false
         }
+
+        isGenerating = false
     }
 
     func nextPage() {

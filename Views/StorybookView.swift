@@ -78,12 +78,23 @@ struct StorybookView: View {
                 LinearGradient(colors: [Color(hex: "1A1042"), Color(hex: "0D0C18")], startPoint: .top, endPoint: .bottom)
 
                 if storyVM.currentPage < story.pages.count {
-                    Image(systemName: story.pages[storyVM.currentPage].emoji)
-                        .font(.system(size: 72, weight: .light))
-                        .foregroundColor(.white.opacity(0.8))
-                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
-                                                removal: .move(edge: .leading).combined(with: .opacity)))
-                        .id(storyVM.currentPage)
+                    let page = story.pages[storyVM.currentPage]
+                    Group {
+                        if let data = page.imageData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .clipped()
+                        } else {
+                            Image(systemName: page.emoji)
+                                .font(.system(size: 72, weight: .light))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                    }
+                    .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
+                                            removal: .move(edge: .leading).combined(with: .opacity)))
+                    .id(storyVM.currentPage)
                 }
 
                 if showOverlay && storyVM.currentPage == 0 {
