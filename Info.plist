@@ -18,8 +18,14 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>GeminiAPIKey</key>
-	<string>$(GEMINI_API_KEY)</string>
+	<key>DoubaoTextAPIKey</key>
+	<string>$(DOUBAO_TEXT_API_KEY)</string>
+	<key>DoubaoTextModelID</key>
+	<string>$(DOUBAO_TEXT_MODEL_ID)</string>
+	<key>DoubaoImageAPIKey</key>
+	<string>$(DOUBAO_IMAGE_API_KEY)</string>
+	<key>DoubaoImageModelID</key>
+	<string>$(DOUBAO_IMAGE_MODEL_ID)</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

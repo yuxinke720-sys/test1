@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0A6E6B9ED3C2B3A6005FB8F4 /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 320C0427164B264C6E86A100 /* GeminiService.swift */; };
+		0A6E6B9ED3C2B3A6005FB8F4 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 320C0427164B264C6E86A100 /* AIService.swift */; };
 		1476AB5EDABC2FBF40AD9EBC /* StorySetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B199C9EE55440AFA0D4EDBA /* StorySetupView.swift */; };
 		4586AFC250EF4909635A3316 /* StoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 691A0DAD9C75F5304CC195BD /* StoryViewModel.swift */; };
 		5C9D32BF061CD2E64A7D5587 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 234A030F30484936B98D4335 /* ShareView.swift */; };
@@ -36,7 +36,7 @@
 		1B199C9EE55440AFA0D4EDBA /* StorySetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorySetupView.swift; sourceTree = "<group>"; };
 		234A030F30484936B98D4335 /* ShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
 		2559185F63C59BCBB0403BEB /* MyBooksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyBooksView.swift; sourceTree = "<group>"; };
-		320C0427164B264C6E86A100 /* GeminiService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiService.swift; sourceTree = "<group>"; };
+		320C0427164B264C6E86A100 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
 		3527429415A921855DF5AC52 /* StorybookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorybookView.swift; sourceTree = "<group>"; };
 		38C8AE9E83CAF2F6844E22C1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		3BE6BAE205B06F7B59F154D6 /* StoryPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryPage.swift; sourceTree = "<group>"; };
@@ -62,7 +62,7 @@
 		2080FB269A8D3F97475AC5F9 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				320C0427164B264C6E86A100 /* GeminiService.swift */,
+				320C0427164B264C6E86A100 /* AIService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -199,7 +199,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				702E549F91AD5F9B5B431E0B /* ContentView.swift in Sources */,
-				0A6E6B9ED3C2B3A6005FB8F4 /* GeminiService.swift in Sources */,
+				0A6E6B9ED3C2B3A6005FB8F4 /* AIService.swift in Sources */,
 				800D28EAF1AD9800FEFD925D /* HomeView.swift in Sources */,
 				68C092609B02E8530E309FB0 /* LoadingView.swift in Sources */,
 				D181C8F462E18AD5FBEE7B14 /* MyBooksView.swift in Sources */,

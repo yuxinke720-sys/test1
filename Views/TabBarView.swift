@@ -1,13 +1,14 @@
 import SwiftUI
 
 enum TabBarItem: String {
-    case home, storyTemplates, myBooks, profile
+    case home, storyTemplates, myBooks, aiTest, profile
 
     var sfSymbol: String {
         switch self {
         case .home: return "house.fill"
         case .storyTemplates: return "sparkles"
         case .myBooks: return "books.vertical.fill"
+        case .aiTest: return "wand.and.stars"
         case .profile: return "person.fill"
         }
     }
@@ -17,6 +18,7 @@ enum TabBarItem: String {
         case .home: return "Home"
         case .storyTemplates: return "Templates"
         case .myBooks: return "My Books"
+        case .aiTest: return "AI Test"
         case .profile: return "Profile"
         }
     }
@@ -26,6 +28,7 @@ enum TabBarItem: String {
         case .home: return .home
         case .storyTemplates: return .storyLibrary
         case .myBooks: return .myBooks
+        case .aiTest: return .aiTest
         case .profile: return .profile
         }
     }
@@ -33,7 +36,7 @@ enum TabBarItem: String {
 
 func smTabBar(active: TabBarItem, currentScreen: Binding<AppScreen>) -> some View {
     HStack {
-        ForEach([TabBarItem.home, .storyTemplates, .myBooks, .profile], id: \.self) { item in
+        ForEach([TabBarItem.home, .storyTemplates, .myBooks, .aiTest, .profile], id: \.self) { item in
             Button {
                 if item != active {
                     currentScreen.wrappedValue = item.screen

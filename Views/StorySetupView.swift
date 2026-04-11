@@ -129,20 +129,58 @@ struct StorySetupView: View {
 
     private var pageCountSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("How many pages?").font(.system(size: 15, weight: .bold)).foregroundColor(Color(hex: "1E1C1A")).padding(.horizontal, 18)
-            HStack(spacing: 2) {
-                ForEach(PageCount.allCases, id: \.self) { count in
-                    let active = storyVM.pageCount == count
-                    Text("\(count.rawValue) pages").font(.system(size: 12, weight: .bold))
-                        .foregroundColor(active ? Color(hex: "C89F00") : Color(hex: "7A756E"))
-                        .frame(maxWidth: .infinity).padding(.vertical, 7)
-                        .background(active ? Color(hex: "FFFFFF") : Color.clear).cornerRadius(9)
-                        .shadow(color: active ? .black.opacity(0.06) : .clear, radius: 4, y: 2)
-                        .onTapGesture { storyVM.pageCount = count }
+            Text("How many pages?")
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundColor(Color(hex: "1E1C1A"))
+                .padding(.horizontal, 18)
+
+            HStack(spacing: 14) {
+                Button {
+                    if storyVM.pageCount > PageCount.min { storyVM.pageCount -= 1 }
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(storyVM.pageCount > PageCount.min ? Color(hex: "E8705A") : Color(hex: "D0CBC4"))
+                        .frame(width: 36, height: 36)
+                        .background(Color(hex: "FFFFFF"))
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
                 }
-            }.padding(3).background(Color(hex: "F5F2EE")).cornerRadius(11).padding(.horizontal, 18)
-            Text(storyVM.pageCount.readTime + " to read aloud")
-                .font(.system(size: 11)).foregroundColor(Color(hex: "7A756E")).frame(maxWidth: .infinity, alignment: .center)
+                .disabled(storyVM.pageCount <= PageCount.min)
+
+                VStack(spacing: 2) {
+                    Text("\(storyVM.pageCount)")
+                        .font(.system(size: 28, weight: .black, design: .rounded))
+                        .foregroundColor(Color(hex: "1E1C1A"))
+                    Text(storyVM.pageCount == 1 ? "page" : "pages")
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(Color(hex: "7A756E"))
+                }
+                .frame(width: 60)
+
+                Button {
+                    if storyVM.pageCount < PageCount.max { storyVM.pageCount += 1 }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(storyVM.pageCount < PageCount.max ? Color(hex: "E8705A") : Color(hex: "D0CBC4"))
+                        .frame(width: 36, height: 36)
+                        .background(Color(hex: "FFFFFF"))
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+                }
+                .disabled(storyVM.pageCount >= PageCount.max)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color(hex: "F5F2EE"))
+            .cornerRadius(14)
+            .padding(.horizontal, 18)
+
+            Text(PageCount.readTime(for: storyVM.pageCount) + " to read aloud")
+                .font(.system(size: 11, design: .rounded))
+                .foregroundColor(Color(hex: "7A756E"))
+                .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 

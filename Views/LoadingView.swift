@@ -6,6 +6,7 @@ struct LoadingView: View {
 
     @State private var bookOffset: CGFloat = 0
     @State private var funFactIndex = 0
+    @State private var hasStarted = false
 
     private let funFacts = [
         "Children read to daily develop vocabularies 3x larger by age 5",
@@ -40,9 +41,22 @@ struct LoadingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             startFunFactRotation()
-            if !storyVM.isGenerating && storyVM.currentStory == nil && storyVM.errorMessage == nil {
-                Task { await storyVM.generateStory() }
-            }
+
+            // Only trigger generation once per view instance
+            guard !hasStarted else { return }
+            hasStarted = true
+
+            // Force-clear stale state from any previous (possibly interrupted) session.
+            // Without this reset, the guard would fail if:
+            //   - isGenerating was left true by a cancelled Task
+            //   - currentStory was set from a previously read book
+            //   - errorMessage was set from a previous failure
+            storyVM.isGenerating = false
+            storyVM.currentStory = nil
+            storyVM.currentPage = 0
+            storyVM.errorMessage = nil
+
+            Task { await storyVM.generateStory() }
         }
         .onChange(of: storyVM.currentStory) {
             if storyVM.currentStory != nil {
@@ -86,7 +100,7 @@ struct LoadingView: View {
                     status: storyVM.generationStage == .illustrating ? .current :
                         (storyVM.generationStage == .writing ? .pending : .done),
                     text: storyVM.generationStage == .illustrating ?
-                        "Illustrating (\(storyVM.illustrationProgress)/\(storyVM.pageCount.rawValue))" :
+                        "Illustrating (\(storyVM.illustrationProgress)/\(storyVM.pageCount))" :
                         "Illustrating pages"
                 )
                 stepRow(

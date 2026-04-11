@@ -6,7 +6,7 @@ class StoryViewModel: ObservableObject {
     @Published var childName: String = "Emma"
     @Published var theme: String = ""
     @Published var selectedStyle: StoryStyle = .warmCozy
-    @Published var pageCount: PageCount = .ten
+    @Published var pageCount: Int = PageCount.defaultValue
     @Published var selectedThemeChip: String?
 
     // Generation state
@@ -73,13 +73,13 @@ class StoryViewModel: ObservableObject {
         illustrationProgress = 0
         errorMessage = nil
 
-        let totalPages = pageCount.rawValue
+        let totalPages = pageCount
 
         do {
             generationStage = .writing
             generationProgress = 5
 
-            let story = try await GeminiService.shared.generateStory(
+            let story = try await AIService.shared.generateStory(
                 childName: childName,
                 theme: theme,
                 style: selectedStyle,
@@ -178,7 +178,7 @@ class StoryViewModel: ObservableObject {
         theme = ""
         selectedThemeChip = nil
         selectedStyle = .warmCozy
-        pageCount = .ten
+        pageCount = PageCount.defaultValue
         currentStory = nil
         currentPage = 0
         isGenerating = false
