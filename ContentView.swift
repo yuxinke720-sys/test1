@@ -42,7 +42,7 @@ struct ContentView: View {
                     .transition(.opacity)
 
             case .loading:
-                LoadingView(storyVM: storyVM, currentScreen: $currentScreen)
+                LoadingView(storyVM: storyVM, photoVM: photoVM, currentScreen: $currentScreen)
                     .transition(.opacity)
 
             case .storybook:

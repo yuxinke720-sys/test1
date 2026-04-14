@@ -1,7 +1,10 @@
+// CHANGED: Added @ObservedObject photoVM parameter.
+// CHANGED: onAppear now copies photoVM.childAppearanceDescription into storyVM before generation.
 import SwiftUI
 
 struct LoadingView: View {
     @ObservedObject var storyVM: StoryViewModel
+    @ObservedObject var photoVM: PhotoViewModel
     @Binding var currentScreen: AppScreen
 
     @State private var bookOffset: CGFloat = 0
@@ -47,14 +50,13 @@ struct LoadingView: View {
             hasStarted = true
 
             // Force-clear stale state from any previous (possibly interrupted) session.
-            // Without this reset, the guard would fail if:
-            //   - isGenerating was left true by a cancelled Task
-            //   - currentStory was set from a previously read book
-            //   - errorMessage was set from a previous failure
             storyVM.isGenerating = false
             storyVM.currentStory = nil
             storyVM.currentPage = 0
             storyVM.errorMessage = nil
+
+            // Transfer photo-derived appearance into storyVM before generation starts
+            storyVM.childAppearanceDescription = photoVM.childAppearanceDescription
 
             Task { await storyVM.generateStory() }
         }

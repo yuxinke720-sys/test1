@@ -1,3 +1,6 @@
+// CHANGED: Added analyzeChildAppearance(from:) for vision-based feature extraction.
+// CHANGED: Added childAppearance parameter to generateStory() and generateIllustrations().
+// CHANGED: Image prompts now lead with appearance description when available.
 import Foundation
 import SwiftUI
 
@@ -30,6 +33,81 @@ class AIService {
         if imageAPIKey.isEmpty { print("[AIService] WARNING: image API key missing") }
     }
 
+    // MARK: - Public: Analyze Child Appearance from Photos
+
+    func analyzeChildAppearance(from images: [UIImage]) async throws -> String {
+        guard !textAPIKey.isEmpty else { throw AIServiceError.invalidKey }
+        guard !images.isEmpty else { throw AIServiceError.apiError }
+
+        // Take up to 3 images, resize to max 512px, encode as base64 JPEG
+        let selected = Array(images.prefix(3))
+        var contentParts: [[String: Any]] = []
+
+        contentParts.append([
+            "type": "text",
+            "text": """
+            You are a children's book illustrator assistant. Analyze the child in these photos and \
+            return ONLY a concise appearance description in English (max 40 words). Cover: hair color \
+            and style, eye color/shape, skin tone, face shape. Example output: \
+            'A young girl with curly auburn hair, bright green eyes, fair skin, and a round cheerful \
+            face.' Do not include names, clothing, or background details.
+            """
+        ])
+
+        for img in selected {
+            let resized = Self.resizeImage(img, maxSide: 512)
+            guard let jpegData = resized.jpegData(compressionQuality: 0.8) else { continue }
+            let b64 = jpegData.base64EncodedString()
+            contentParts.append([
+                "type": "image_url",
+                "image_url": ["url": "data:image/jpeg;base64,\(b64)"]
+            ])
+        }
+
+        guard let url = URL(string: textBaseURL) else { throw AIServiceError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(textAPIKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+
+        let body: [String: Any] = [
+            "model": textModelID,
+            "messages": [["role": "user", "content": contentParts]],
+            "max_tokens": 200,
+            "thinking": ["type": "disabled"]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else { throw AIServiceError.apiError }
+
+        let rawBody = String(data: data, encoding: .utf8) ?? "(binary, \(data.count) bytes)"
+        print("[AIService] Vision API HTTP \(http.statusCode), \(data.count) bytes")
+        print("[AIService] Vision RAW RESPONSE:\n\(rawBody)")
+
+        guard http.statusCode == 200 else {
+            throw AIServiceError.httpError(statusCode: http.statusCode)
+        }
+
+        let description = try extractContent(from: data)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        print("[AIService] Child appearance: \(description)")
+        return description
+    }
+
+    /// Resize a UIImage so its longest side is at most `maxSide` points.
+    private static func resizeImage(_ image: UIImage, maxSide: CGFloat) -> UIImage {
+        let size = image.size
+        guard max(size.width, size.height) > maxSide else { return image }
+        let scale = maxSide / max(size.width, size.height)
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
+    }
+
     // MARK: - Public: Generate Full Story
 
     func generateStory(
@@ -37,6 +115,7 @@ class AIService {
         theme: String,
         style: StoryStyle,
         pageCount: Int,
+        childAppearance: String = "",
         onPageIllustrated: (@Sendable (Int) -> Void)? = nil
     ) async throws -> Story {
         guard !textAPIKey.isEmpty else {
@@ -50,12 +129,15 @@ class AIService {
         var pages = try await callTextAPI(prompt: prompt)
         print("[AIService] Story text generated: \(pages.count) pages")
 
-        // 2. Generate illustrations concurrently
+        // Use a stable ID for this story so images land in the right directory
+        let storyId = UUID()
+
+        // 2. Generate illustrations concurrently — saved to disk
         print("[AIService] Generating illustrations...")
-        pages = await generateIllustrations(for: pages, childName: childName, style: style, onPageDone: onPageIllustrated)
+        pages = await generateIllustrations(for: pages, storyId: storyId, childName: childName, style: style, childAppearance: childAppearance, onPageDone: onPageIllustrated)
 
         let title = "\(childName)'s \(theme.prefix(30).trimmingCharacters(in: .whitespaces)) Story"
-        return Story(title: title, childName: childName, theme: theme, style: style, pages: pages)
+        return Story(id: storyId, title: title, childName: childName, theme: theme, style: style, pages: pages)
     }
 
     // MARK: - Text-only generation (for testing)
@@ -292,8 +374,10 @@ class AIService {
 
     private func generateIllustrations(
         for pages: [StoryPage],
+        storyId: UUID,
         childName: String,
         style: StoryStyle,
+        childAppearance: String,
         onPageDone: (@Sendable (Int) -> Void)?
     ) async -> [StoryPage] {
         guard !imageAPIKey.isEmpty else {
@@ -301,18 +385,32 @@ class AIService {
             return pages
         }
 
+        // Build the appearance prefix once — empty string if no description available
+        let appearanceClause: String
+        if !childAppearance.trimmingCharacters(in: .whitespaces).isEmpty {
+            appearanceClause = "The child protagonist has the following appearance: \(childAppearance). "
+        } else {
+            appearanceClause = ""
+        }
+
         var result = pages
 
-        await withTaskGroup(of: (Int, Data?).self) { group in
+        await withTaskGroup(of: (Int, String?).self) { group in
             for (index, page) in pages.enumerated() {
                 group.addTask {
-                    let imagePrompt = "Children's book illustration for a \(style.rawValue) children's story. Scene: \(page.imageDescription). Style: warm, colorful, cartoon, soft lighting, friendly characters. A child named \(childName)."
+                    let imagePrompt = "\(appearanceClause)Children's book illustration for a \(style.rawValue) children's story. Scene: \(page.imageDescription). Style: warm, colorful, cartoon, soft lighting, friendly characters. A child named \(childName)."
                     print("[AIService] Generating image \(index + 1)/\(pages.count)")
 
                     do {
                         let data = try await self.callImageAPI(prompt: imagePrompt)
                         print("[AIService] Image \(index + 1) generated: \(data.count) bytes")
-                        return (index, data)
+                        // Save to disk, return relative path
+                        let path = try await ImageStorageService.shared.save(
+                            imageData: data,
+                            storyId: storyId,
+                            pageNumber: page.pageNumber
+                        )
+                        return (index, path)
                     } catch {
                         print("[AIService] Image \(index + 1) FAILED: \(error.localizedDescription)")
                         return (index, nil)
@@ -321,14 +419,14 @@ class AIService {
             }
 
             var completed = 0
-            for await (index, data) in group {
-                if let data { result[index].imageData = data }
+            for await (index, path) in group {
+                if let path { result[index].imageStoragePath = path }
                 completed += 1
                 onPageDone?(completed)
             }
         }
 
-        let successCount = result.filter { $0.imageData != nil }.count
+        let successCount = result.filter { $0.imageStoragePath != nil }.count
         print("[AIService] Illustrations complete: \(successCount)/\(pages.count)")
         return result
     }

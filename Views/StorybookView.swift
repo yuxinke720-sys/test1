@@ -1,5 +1,37 @@
 import SwiftUI
 
+// MARK: - Async Image Loader (disk-backed)
+
+/// Loads a story page image from the local file system without blocking the main thread.
+struct AsyncStoryImage: View {
+    let relativePath: String?
+    let fallbackEmoji: String
+
+    @State private var uiImage: UIImage?
+
+    var body: some View {
+        Group {
+            if let uiImage {
+                Image(uiImage: uiImage)
+                    .interpolation(.high)
+                    .resizable()
+                    .scaledToFill()
+            } else if relativePath != nil {
+                // Loading placeholder
+                ProgressView()
+            } else {
+                Image(systemName: fallbackEmoji)
+                    .font(.system(size: 72, weight: .light))
+                    .foregroundColor(Color(hex: "2C2417").opacity(0.5))
+            }
+        }
+        .task(id: relativePath) {
+            guard let path = relativePath else { return }
+            uiImage = await ImageStorageService.shared.loadImage(from: path)
+        }
+    }
+}
+
 struct StorybookView: View {
     @ObservedObject var storyVM: StoryViewModel
     @Binding var currentScreen: AppScreen
@@ -7,6 +39,7 @@ struct StorybookView: View {
     @State private var showOverlay = true
     @State private var showCompletion = false
     @State private var dragOffset: CGFloat = 0
+    @State private var showDeleteAlert = false
 
     var body: some View {
         GeometryReader { geo in
@@ -64,6 +97,17 @@ struct StorybookView: View {
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { withAnimation { showOverlay = false } }
         }
+        .alert("Delete Story", isPresented: $showDeleteAlert) {
+            Button("Delete", role: .destructive) {
+                if let story = storyVM.currentStory {
+                    storyVM.deleteStory(story)
+                }
+                currentScreen = storyVM.previousScreen
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this story? This action cannot be undone.")
+        }
     }
 
     // MARK: - Exit Helper
@@ -87,37 +131,26 @@ struct StorybookView: View {
 
                 if storyVM.currentPage < story.pages.count {
                     let page = story.pages[storyVM.currentPage]
-                    Group {
-                        if let data = page.imageData, let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage)
-                                .interpolation(.high)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: geo.size.width, height: imageHeight)
-                                .clipped()
-                                .overlay(
-                                    LinearGradient(
-                                        colors: [.clear, Color(hex: "F5EDD6").opacity(0.2), Color(hex: "F5EDD6").opacity(0.95)],
-                                        startPoint: .center,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .overlay(
-                                    LinearGradient(
-                                        colors: [Color(hex: "F5EDD6").opacity(0.6), .clear],
-                                        startPoint: .top,
-                                        endPoint: .center
-                                    )
-                                )
-                        } else {
-                            Image(systemName: page.emoji)
-                                .font(.system(size: 72, weight: .light))
-                                .foregroundColor(Color(hex: "2C2417").opacity(0.5))
-                        }
-                    }
-                    .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
-                                            removal: .move(edge: .leading).combined(with: .opacity)))
-                    .id(storyVM.currentPage)
+                    AsyncStoryImage(relativePath: page.imageStoragePath, fallbackEmoji: page.emoji)
+                        .frame(width: geo.size.width, height: imageHeight)
+                        .clipped()
+                        .overlay(
+                            LinearGradient(
+                                colors: [.clear, Color(hex: "F5EDD6").opacity(0.2), Color(hex: "F5EDD6").opacity(0.95)],
+                                startPoint: .center,
+                                endPoint: .bottom
+                            )
+                        )
+                        .overlay(
+                            LinearGradient(
+                                colors: [Color(hex: "F5EDD6").opacity(0.6), .clear],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
+                                                removal: .move(edge: .leading).combined(with: .opacity)))
+                        .id(storyVM.currentPage)
                 }
 
                 if showOverlay && storyVM.currentPage == 0 {
@@ -209,7 +242,7 @@ struct StorybookView: View {
             HStack(spacing: 24) {
                 readerAction(icon: storyVM.currentStory?.isFavorite == true ? "heart.fill" : "heart", label: "Save") { storyVM.toggleFavorite() }
                 readerAction(icon: "square.and.arrow.up", label: "Share") { currentScreen = .share }
-                readerAction(icon: "speaker.wave.2.fill", label: "Read") {}
+                readerAction(icon: "trash", label: "Delete", destructive: true) { showDeleteAlert = true }
                 readerAction(icon: "arrow.counterclockwise", label: "Redo") {}
             }
         }
@@ -217,11 +250,13 @@ struct StorybookView: View {
         .background(Color(hex: "F5EDD6").opacity(0.97))
     }
 
-    private func readerAction(icon: String, label: String, action: @escaping () -> Void) -> some View {
+    private func readerAction(icon: String, label: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 2) {
-                Image(systemName: icon).font(.system(size: 18, weight: .medium)).foregroundColor(Color(hex: "2C2417"))
-                Text(label).font(.system(size: 8)).foregroundColor(Color(hex: "2C2417").opacity(0.4))
+                Image(systemName: icon).font(.system(size: 18, weight: .medium))
+                    .foregroundColor(destructive ? .red : Color(hex: "2C2417"))
+                Text(label).font(.system(size: 8))
+                    .foregroundColor(destructive ? .red.opacity(0.6) : Color(hex: "2C2417").opacity(0.4))
             }
         }
     }
@@ -231,30 +266,20 @@ struct StorybookView: View {
     private func completionOverlay(story: Story, geo: GeometryProxy) -> some View {
         ZStack(alignment: .topTrailing) {
             // — Background —
-            if let lastPage = story.pages.last,
-               let data = lastPage.imageData,
-               let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: geo.size.width, height: geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom)
-                    .clipped()
-                    .overlay(
-                        LinearGradient(
-                            colors: [Color(hex: "FFFEF5").opacity(0.0), Color(hex: "FFFEF5").opacity(0.97)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .ignoresSafeArea()
-            } else {
+            AsyncStoryImage(
+                relativePath: story.pages.last?.imageStoragePath,
+                fallbackEmoji: story.pages.last?.emoji ?? "book.fill"
+            )
+            .frame(width: geo.size.width, height: geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom)
+            .clipped()
+            .overlay(
                 LinearGradient(
-                    colors: [Color(hex: "FFF8E7"), Color(hex: "FFFEF5")],
+                    colors: [Color(hex: "FFFEF5").opacity(0.0), Color(hex: "FFFEF5").opacity(0.97)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .ignoresSafeArea()
-            }
+            )
+            .ignoresSafeArea()
 
             // — Close button (top right) —
             Button {

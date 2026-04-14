@@ -1,3 +1,5 @@
+// CHANGED: Added childAppearanceDescription property (set externally before generation).
+// CHANGED: generateStory() now passes childAppearanceDescription into AIService.shared.generateStory().
 import SwiftUI
 
 @MainActor
@@ -28,6 +30,9 @@ class StoryViewModel: ObservableObject {
 
     // Saved stories
     @Published var savedStories: [Story] = []
+
+    // Child appearance (set from PhotoViewModel before generation)
+    var childAppearanceDescription: String = ""
 
     // MARK: - Persistence Keys
     private static let savedStoriesKey = "savedStories"
@@ -84,6 +89,7 @@ class StoryViewModel: ObservableObject {
                 theme: theme,
                 style: selectedStyle,
                 pageCount: totalPages,
+                childAppearance: childAppearanceDescription,
                 onPageIllustrated: { [weak self] completed in
                     Task { @MainActor in
                         guard let self else { return }
@@ -187,13 +193,91 @@ class StoryViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    // MARK: - Story Deletion
+
+    func deleteStory(_ story: Story) {
+        savedStories.removeAll { $0.id == story.id }
+        ImageStorageService.shared.deleteStoryImages(storyId: story.id)
+        persistSavedStories()
+    }
+
+    func deleteStory(at offsets: IndexSet) {
+        let storiesToDelete = offsets.map { savedStories[$0] }
+        for story in storiesToDelete {
+            ImageStorageService.shared.deleteStoryImages(storyId: story.id)
+        }
+        savedStories.remove(atOffsets: offsets)
+        persistSavedStories()
+    }
+
     // MARK: - Persistence
 
     private func loadSavedStories() {
-        guard let data = UserDefaults.standard.data(forKey: Self.savedStoriesKey),
-              let stories = try? JSONDecoder().decode([Story].self, from: data)
-        else { return }
+        guard let data = UserDefaults.standard.data(forKey: Self.savedStoriesKey) else {
+            print("[StoryVM] No saved stories data in UserDefaults")
+            return
+        }
+
+        let stories: [Story]
+        do {
+            stories = try JSONDecoder().decode([Story].self, from: data)
+        } catch {
+            print("[StoryVM] ERROR decoding saved stories: \(error)")
+            return
+        }
+
+        print("[StoryVM] Loaded \(stories.count) stories from UserDefaults")
+
+        // Check if any story still carries legacy imageData that needs migration
+        let needsMigration = stories.contains { story in
+            story.pages.contains { $0.legacyImageData != nil }
+        }
+
         savedStories = stories
+
+        if needsMigration {
+            print("[StoryVM] Legacy imageData detected — starting migration")
+            Task { await migrateLegacyImageData() }
+        }
+    }
+
+    /// Migrates any legacy inline `imageData` to on-disk files and re-persists.
+    private func migrateLegacyImageData() async {
+        print("[StoryVM] Starting legacy imageData migration…")
+
+        // Work on a local copy to apply all changes atomically
+        var migratedStories = savedStories
+        var mutated = false
+
+        for storyIndex in migratedStories.indices {
+            let story = migratedStories[storyIndex]
+            for pageIndex in migratedStories[storyIndex].pages.indices {
+                let page = migratedStories[storyIndex].pages[pageIndex]
+                guard let legacyData = page.legacyImageData else { continue }
+
+                do {
+                    let path = try await ImageStorageService.shared.save(
+                        imageData: legacyData,
+                        storyId: story.id,
+                        pageNumber: page.pageNumber
+                    )
+                    migratedStories[storyIndex].pages[pageIndex].imageStoragePath = path
+                    migratedStories[storyIndex].pages[pageIndex].legacyImageData = nil
+                    mutated = true
+                    print("[StoryVM] Migrated page \(page.pageNumber) of story \(story.id.uuidString)")
+                } catch {
+                    print("[StoryVM] Migration failed for page \(page.pageNumber): \(error)")
+                }
+            }
+        }
+
+        if mutated {
+            // Assign the fully-migrated array back to the @Published property
+            // in one shot — this guarantees SwiftUI picks up the change.
+            savedStories = migratedStories
+            persistSavedStories()
+            print("[StoryVM] Legacy migration complete — \(savedStories.count) stories re-saved")
+        }
     }
 
     func persistSavedStories() {
