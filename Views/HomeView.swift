@@ -20,6 +20,26 @@ struct HomeView: View {
                         heroBanner
                         miniCalendarStrip
                         recentBooksSection
+                        
+                        
+                        // --- 临时崩溃测试按钮开始 ---
+                        Button(action: {
+                            fatalError("这是一次 Crashlytics 的主动崩溃测试！")
+                        }) {
+                            HStack {
+                                Image(systemName: "flame.fill")
+                                Text("点此验证 Firebase 崩溃报告")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.red)
+                            .cornerRadius(12)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 10)
+                        }
+                        // --- 临时崩溃测试按钮结束 ---
                     }
                     .frame(maxWidth: .infinity)
                 }
