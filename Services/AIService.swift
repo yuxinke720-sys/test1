@@ -1,101 +1,56 @@
-// CHANGED: Added analyzeChildAppearance(from:) for vision-based feature extraction.
-// CHANGED: Added childAppearance parameter to generateStory() and generateIllustrations().
-// CHANGED: Image prompts now lead with appearance description when available.
+// AIService — routes all AI generation through Firebase Cloud Functions.
+// No API keys are stored in the iOS client.
 import Foundation
 import SwiftUI
+import FirebaseFunctions
 
 class AIService {
     static let shared = AIService()
 
-    private let textAPIKey: String
-    private let textModelID: String
-    private let imageAPIKey: String
-    private let imageModelID: String
-
-    private let textBaseURL = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
-    private let imageBaseURL = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+    /// Firebase Functions client, pointed at asia-northeast1 region.
+    /// Emulator is configured globally in AppDelegate before this instance is created.
+    private let functions = Functions.functions(region: "asia-northeast1")
 
     private init() {
-        let info = Bundle.main.infoDictionary ?? [:]
-
-        func resolve(_ key: String) -> String {
-            guard let val = info[key] as? String, !val.isEmpty, !val.hasPrefix("$(") else { return "" }
-            return val
-        }
-
-        textAPIKey  = resolve("DoubaoTextAPIKey")
-        textModelID = resolve("DoubaoTextModelID")
-        imageAPIKey = resolve("DoubaoImageAPIKey")
-        imageModelID = resolve("DoubaoImageModelID")
-
-        print("[AIService] text model: \(textModelID), image model: \(imageModelID)")
-        if textAPIKey.isEmpty  { print("[AIService] WARNING: text API key missing") }
-        if imageAPIKey.isEmpty { print("[AIService] WARNING: image API key missing") }
+        print("[AIService] Functions region: asia-northeast1")
     }
 
     // MARK: - Public: Analyze Child Appearance from Photos
 
     func analyzeChildAppearance(from images: [UIImage]) async throws -> String {
-        guard !textAPIKey.isEmpty else { throw AIServiceError.invalidKey }
         guard !images.isEmpty else { throw AIServiceError.apiError }
 
-        // Take up to 3 images, resize to max 512px, encode as base64 JPEG
+        // Encode images as base64 for the Cloud Function
         let selected = Array(images.prefix(3))
-        var contentParts: [[String: Any]] = []
-
-        contentParts.append([
-            "type": "text",
-            "text": """
-            You are a children's book illustrator assistant. Analyze the child in these photos and \
-            return ONLY a concise appearance description in English (max 40 words). Cover: hair color \
-            and style, eye color/shape, skin tone, face shape. Example output: \
-            'A young girl with curly auburn hair, bright green eyes, fair skin, and a round cheerful \
-            face.' Do not include names, clothing, or background details.
-            """
-        ])
+        var imageB64List: [String] = []
 
         for img in selected {
             let resized = Self.resizeImage(img, maxSide: 512)
             guard let jpegData = resized.jpegData(compressionQuality: 0.8) else { continue }
-            let b64 = jpegData.base64EncodedString()
-            contentParts.append([
-                "type": "image_url",
-                "image_url": ["url": "data:image/jpeg;base64,\(b64)"]
-            ])
+            imageB64List.append(jpegData.base64EncodedString())
         }
 
-        guard let url = URL(string: textBaseURL) else { throw AIServiceError.invalidURL }
+        let prompt = """
+        You are a children's book illustrator assistant. Analyze the child in these photos and \
+        return ONLY a concise appearance description in English (max 40 words). Cover: hair color \
+        and style, eye color/shape, skin tone, face shape. Example output: \
+        'A young girl with curly auburn hair, bright green eyes, fair skin, and a round cheerful \
+        face.' Do not include names, clothing, or background details.
+        """
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(textAPIKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 30
+        let result = try await callFunction("analyzeAppearance", data: [
+            "prompt": prompt,
+            "images": imageB64List
+        ])
 
-        let body: [String: Any] = [
-            "model": textModelID,
-            "messages": [["role": "user", "content": contentParts]],
-            "max_tokens": 200,
-            "thinking": ["type": "disabled"]
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let http = response as? HTTPURLResponse else { throw AIServiceError.apiError }
-
-        let rawBody = String(data: data, encoding: .utf8) ?? "(binary, \(data.count) bytes)"
-        print("[AIService] Vision API HTTP \(http.statusCode), \(data.count) bytes")
-        print("[AIService] Vision RAW RESPONSE:\n\(rawBody)")
-
-        guard http.statusCode == 200 else {
-            throw AIServiceError.httpError(statusCode: http.statusCode)
+        guard let description = result["storyData"] as? String, !description.isEmpty else {
+            print("[AIService] Vision: unexpected response format")
+            throw AIServiceError.parsingError
         }
 
-        let description = try extractContent(from: data)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        print("[AIService] Child appearance: \(description)")
-        return description
+        let trimmed = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        print("[AIService] Child appearance: \(trimmed)")
+        return trimmed
     }
 
     /// Resize a UIImage so its longest side is at most `maxSide` points.
@@ -118,23 +73,29 @@ class AIService {
         childAppearance: String = "",
         onPageIllustrated: (@Sendable (Int) -> Void)? = nil
     ) async throws -> Story {
-        guard !textAPIKey.isEmpty else {
-            print("[AIService] No text API key — using mock story")
-            return generateMockStory(childName: childName, theme: theme, style: style, pageCount: pageCount)
-        }
 
-        // 1. Generate story text
-        print("[AIService] Generating story text...")
-        let prompt = buildPrompt(childName: childName, theme: theme, style: style, pageCount: pageCount)
-        var pages = try await callTextAPI(prompt: prompt)
+        // 1. Generate story text via Cloud Function
+        print("[AIService] Generating story text via Firebase…")
+        var pages = try await callGenerateStory(
+            childName: childName,
+            theme: theme,
+            style: style,
+            pageCount: pageCount,
+            childAppearance: childAppearance
+        )
         print("[AIService] Story text generated: \(pages.count) pages")
 
         // Use a stable ID for this story so images land in the right directory
         let storyId = UUID()
 
         // 2. Generate illustrations concurrently — saved to disk
-        print("[AIService] Generating illustrations...")
-        pages = await generateIllustrations(for: pages, storyId: storyId, childName: childName, style: style, childAppearance: childAppearance, onPageDone: onPageIllustrated)
+        print("[AIService] Generating illustrations…")
+        pages = await generateIllustrations(
+            for: pages, storyId: storyId,
+            childName: childName, style: style,
+            childAppearance: childAppearance,
+            onPageDone: onPageIllustrated
+        )
 
         let title = "\(childName)'s \(theme.prefix(30).trimmingCharacters(in: .whitespaces)) Story"
         return Story(id: storyId, title: title, childName: childName, theme: theme, style: style, pages: pages)
@@ -143,165 +104,94 @@ class AIService {
     // MARK: - Text-only generation (for testing)
 
     func generateText(prompt: String) async throws -> String {
-        guard !textAPIKey.isEmpty else { throw AIServiceError.invalidKey }
-        return try await callRawTextAPI(prompt: prompt)
+        let result = try await callFunction("generateStory", data: [
+            "childName": "Test",
+            "theme": prompt,
+            "style": "Warm & Cozy",
+            "pageCount": 1
+        ])
+        guard let text = result["storyData"] as? String else {
+            throw AIServiceError.emptyContent
+        }
+        return text
     }
 
     // MARK: - Image-only generation (for testing)
 
     func generateImage(prompt: String) async throws -> Data {
-        guard !imageAPIKey.isEmpty else { throw AIServiceError.invalidKey }
-        return try await callImageAPI(prompt: prompt)
+        let result = try await callFunction("generateImage", data: [
+            "prompt": prompt
+        ])
+        guard let b64 = result["imageData"] as? String,
+              let imageData = Data(base64Encoded: b64)
+        else {
+            throw AIServiceError.imageGenerationFailed
+        }
+        return imageData
     }
 
-    // MARK: - Text Generation (Doubao /chat/completions)
+    // MARK: - Firebase Callable Helpers
 
-    private func buildPrompt(childName: String, theme: String, style: StoryStyle, pageCount: Int) -> String {
-        """
-        You are a children's storybook author. Write a \(pageCount)-page illustrated children's story.
+    /// Generic helper: calls a named Cloud Function with the given data dict.
+    /// Returns the result dictionary from the onCall response.
+    private func callFunction(_ name: String, data: [String: Any]) async throws -> [String: Any] {
+        print("[AIService] Calling Cloud Function: \(name)")
+        print("[AIService] Expected URL: http://127.0.0.1:5001/storyme-app-d02d2/asia-northeast1/\(name)")
+        print("[AIService] Data keys: \(data.keys.sorted())")
 
-        Child's name: \(childName)
-        Theme: \(theme)
-        Style: \(style.rawValue)
+        let callable = functions.httpsCallable(name)
+        callable.timeoutInterval = 120
 
-        For each page, provide:
-        1. The story text (2-3 sentences, age-appropriate for 3-6 year olds)
-        2. A detailed image description for an illustrator (describe the scene, characters, colors, mood — 1-2 sentences)
-        3. A single SF Symbol icon name that represents the scene (e.g. "sun.max.fill", "star.fill", "heart.fill", "tree.fill")
+        let result: HTTPSCallableResult
+        do {
+            result = try await callable.call(data)
+        } catch {
+            print("[AIService] \(name) call failed: \(error)")
+            throw AIServiceError.apiError
+        }
 
-        Respond ONLY with a valid JSON array, no markdown, no code fences, no extra text:
-        [{"pageNumber": 1, "text": "...", "imageDescription": "...", "emoji": "star.fill"}]
+        guard let dict = result.data as? [String: Any] else {
+            print("[AIService] \(name): response is not a dictionary")
+            throw AIServiceError.parsingError
+        }
 
-        Make the story warm, engaging, and end with a positive message.
-        Use simple vocabulary. Make \(childName) the hero of the story.
-        """
+        print("[AIService] \(name) success, keys: \(dict.keys.sorted())")
+        return dict
     }
 
-    private func callRawTextAPI(prompt: String) async throws -> String {
-        guard let url = URL(string: textBaseURL) else { throw AIServiceError.invalidURL }
+    /// Calls the generateStory Cloud Function with structured parameters
+    /// and parses the response into [StoryPage].
+    private func callGenerateStory(
+        childName: String,
+        theme: String,
+        style: StoryStyle,
+        pageCount: Int,
+        childAppearance: String
+    ) async throws -> [StoryPage] {
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(textAPIKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 30
-
-        let body: [String: Any] = [
-            "model": textModelID,
-            "messages": [["role": "user", "content": prompt]],
-            "max_tokens": 4000,
-            "thinking": ["type": "disabled"]
+        var data: [String: Any] = [
+            "childName": childName,
+            "theme": theme,
+            "style": style.rawValue,
+            "pageCount": pageCount
         ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let http = response as? HTTPURLResponse else { throw AIServiceError.apiError }
-
-        // Always dump the full response for debugging
-        let rawBody = String(data: data, encoding: .utf8) ?? "(binary, \(data.count) bytes)"
-        print("[AIService] Text API HTTP \(http.statusCode), \(data.count) bytes")
-        print("[AIService] RAW RESPONSE:\n\(rawBody)")
-
-        guard http.statusCode == 200 else {
-            throw AIServiceError.httpError(statusCode: http.statusCode)
+        if !childAppearance.trimmingCharacters(in: .whitespaces).isEmpty {
+            data["childAppearance"] = childAppearance
         }
 
-        return try extractContent(from: data)
+        let result = try await callFunction("generateStory", data: data)
+
+        guard let storyText = result["storyData"] as? String, !storyText.isEmpty else {
+            print("[AIService] generateStory: empty storyData")
+            throw AIServiceError.emptyContent
+        }
+
+        return try parseStoryJSON(storyText)
     }
 
-    /// Robust content extraction. Handles:
-    /// - `content` as a plain String (standard OpenAI format)
-    /// - `content` as an Array of parts (`[{"type":"text","text":"..."}]`)
-    /// - `content` missing/empty → falls back to `reasoning_content` (thinking models)
-    private func extractContent(from data: Data) throws -> String {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            print("[AIService] extractContent: response is not a JSON object")
-            throw AIServiceError.parsingError
-        }
+    // MARK: - Response Parsing
 
-        // Check for API-level error envelope
-        if let error = json["error"] as? [String: Any] {
-            let msg = (error["message"] as? String) ?? "unknown API error"
-            print("[AIService] extractContent: API error envelope: \(msg)")
-            throw AIServiceError.parsingError
-        }
-
-        guard let choices = json["choices"] as? [[String: Any]], !choices.isEmpty else {
-            print("[AIService] extractContent: no 'choices' array")
-            throw AIServiceError.parsingError
-        }
-
-        let choice = choices[0]
-
-        // Log finish_reason — if "length", max_tokens truncation is the problem
-        if let finish = choice["finish_reason"] as? String {
-            print("[AIService] finish_reason: \(finish)")
-        }
-
-        guard let message = choice["message"] as? [String: Any] else {
-            print("[AIService] extractContent: no 'message' object")
-            throw AIServiceError.parsingError
-        }
-
-        // Try content as String
-        if let contentStr = message["content"] as? String, !contentStr.isEmpty {
-            return contentStr
-        }
-
-        // Try content as Array of parts ({"type": "text", "text": "..."})
-        if let contentArr = message["content"] as? [[String: Any]] {
-            let joined = contentArr
-                .compactMap { $0["text"] as? String }
-                .joined(separator: "\n")
-            if !joined.isEmpty { return joined }
-        }
-
-        // Fallback to reasoning_content (thinking models)
-        if let reasoning = message["reasoning_content"] as? String, !reasoning.isEmpty {
-            print("[AIService] content empty — falling back to reasoning_content")
-            return "[reasoning_content]\n\(reasoning)"
-        }
-
-        print("[AIService] extractContent: content and reasoning_content are both empty/missing")
-        throw AIServiceError.emptyContent
-    }
-
-    private func callTextAPI(prompt: String) async throws -> [StoryPage] {
-        guard let url = URL(string: textBaseURL) else { throw AIServiceError.invalidURL }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(textAPIKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 30
-
-        let body: [String: Any] = [
-            "model": textModelID,
-            "messages": [["role": "user", "content": prompt]],
-            "max_tokens": 4000,
-            "thinking": ["type": "disabled"]
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let http = response as? HTTPURLResponse else { throw AIServiceError.apiError }
-
-        print("[AIService] Text API HTTP \(http.statusCode), \(data.count) bytes")
-
-        guard http.statusCode == 200 else {
-            let errBody = String(data: data, encoding: .utf8) ?? ""
-            print("[AIService] Text API error: \(errBody)")
-            throw AIServiceError.httpError(statusCode: http.statusCode)
-        }
-
-        return try parseTextResponse(data: data)
-    }
-
-    private func parseTextResponse(data: Data) throws -> [StoryPage] {
-        let rawText = try extractContent(from: data)
-
+    private func parseStoryJSON(_ rawText: String) throws -> [StoryPage] {
         // Strip markdown code fences
         var clean = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         if clean.hasPrefix("```json") { clean = String(clean.dropFirst(7)) }
@@ -329,48 +219,7 @@ class AIService {
         return pages
     }
 
-    // MARK: - Image Generation (Doubao /images/generations)
-
-    private func callImageAPI(prompt: String) async throws -> Data {
-        guard let url = URL(string: imageBaseURL) else { throw AIServiceError.invalidURL }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(imageAPIKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 120
-
-        // Doubao requires image dimensions ≥ 3,686,400 pixels (1920×1920 minimum).
-        // 2048×2048 = 4,194,304 px gives a safe margin above the minimum.
-        let body: [String: Any] = [
-            "model": imageModelID,
-            "prompt": prompt,
-            "size": "2048x2048",
-            "n": 1,
-            "response_format": "b64_json"
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let http = response as? HTTPURLResponse else { throw AIServiceError.imageGenerationFailed }
-        guard http.statusCode == 200 else {
-            let errBody = String(data: data, encoding: .utf8) ?? ""
-            print("[AIService] Image API HTTP \(http.statusCode): \(errBody)")
-            throw AIServiceError.imageGenerationFailed
-        }
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let dataArr = json["data"] as? [[String: Any]],
-              let b64 = dataArr.first?["b64_json"] as? String,
-              let imageData = Data(base64Encoded: b64)
-        else {
-            print("[AIService] Image parse failed: \(String(data: data, encoding: .utf8)?.prefix(300) ?? "nil")")
-            throw AIServiceError.imageGenerationFailed
-        }
-
-        return imageData
-    }
+    // MARK: - Image Generation (via Cloud Function)
 
     private func generateIllustrations(
         for pages: [StoryPage],
@@ -380,12 +229,8 @@ class AIService {
         childAppearance: String,
         onPageDone: (@Sendable (Int) -> Void)?
     ) async -> [StoryPage] {
-        guard !imageAPIKey.isEmpty else {
-            print("[AIService] No image API key — skipping illustrations")
-            return pages
-        }
 
-        // Build the appearance prefix once — empty string if no description available
+        // Build the appearance prefix once
         let appearanceClause: String
         if !childAppearance.trimmingCharacters(in: .whitespaces).isEmpty {
             appearanceClause = "The child protagonist has the following appearance: \(childAppearance). "
@@ -402,11 +247,10 @@ class AIService {
                     print("[AIService] Generating image \(index + 1)/\(pages.count)")
 
                     do {
-                        let data = try await self.callImageAPI(prompt: imagePrompt)
-                        print("[AIService] Image \(index + 1) generated: \(data.count) bytes")
-                        // Save to disk, return relative path
+                        let imgData = try await self.generateImage(prompt: imagePrompt)
+                        print("[AIService] Image \(index + 1) generated: \(imgData.count) bytes")
                         let path = try await ImageStorageService.shared.save(
-                            imageData: data,
+                            imageData: imgData,
                             storyId: storyId,
                             pageNumber: page.pageNumber
                         )
@@ -431,7 +275,7 @@ class AIService {
         return result
     }
 
-    // MARK: - Mock (fallback when no API key)
+    // MARK: - Mock (fallback)
 
     private func generateMockStory(childName: String, theme: String, style: StoryStyle, pageCount: Int) -> Story {
         let samplePages: [(String, String)] = [
@@ -471,8 +315,8 @@ enum AIServiceError: LocalizedError {
         case .invalidURL: return "Invalid API URL"
         case .apiError: return "Failed to generate story. Please try again."
         case .parsingError: return "Failed to parse the story. Please try again."
-        case .emptyContent: return "Model returned empty content (reasoning may have consumed max_tokens). Check console for raw response."
-        case .invalidKey: return "API key not configured. Check your Doubao API keys."
+        case .emptyContent: return "Model returned empty content. Check console for raw response."
+        case .invalidKey: return "API key not configured."
         case .httpError(let c): return "Server error (HTTP \(c)). Please try again later."
         case .imageGenerationFailed: return "Could not generate illustration. Story saved without images."
         }

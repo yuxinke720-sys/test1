@@ -1,5 +1,7 @@
 import SwiftUI
 import FirebaseCore // 导入 Firebase 核心库
+import FirebaseAuth
+import FirebaseFunctions
 
 // MARK: - App Delegate
 // Firebase 的初始化必须通过 AppDelegate 在应用启动时完成
@@ -8,6 +10,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // 核心启动指令：连接 Firebase 云端服务
         FirebaseApp.configure()
+
+        #if DEBUG
+        // 在 Functions 实例创建之前，指定模拟器地址
+        Functions.functions(region: "asia-northeast1")
+            .useEmulator(withHost: "127.0.0.1", port: 5001)
+        Auth.auth().useEmulator(withHost: "127.0.0.1", port: 9099)
+        print("[Firebase] Emulators configured — Functions:5001, Auth:9099")
+        #endif
+
         return true
     }
 }
