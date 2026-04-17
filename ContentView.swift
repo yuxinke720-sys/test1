@@ -137,7 +137,7 @@ struct ContentView: View {
 
 // MARK: - AI Test View
 
-struct AITestView: View {
+struct AITestView:  View {
     @Binding var currentScreen: AppScreen
 
     @State private var textPrompt = "Tell me a short bedtime story for a 4 year old."
