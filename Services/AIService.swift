@@ -71,6 +71,7 @@ class AIService {
         style: StoryStyle,
         pageCount: Int,
         childAppearance: String = "",
+        userUID: String = "",
         onPageIllustrated: (@Sendable (Int) -> Void)? = nil
     ) async throws -> Story {
 
@@ -94,6 +95,7 @@ class AIService {
             for: pages, storyId: storyId,
             childName: childName, style: style,
             childAppearance: childAppearance,
+            userUID: userUID,
             onPageDone: onPageIllustrated
         )
 
@@ -227,6 +229,7 @@ class AIService {
         childName: String,
         style: StoryStyle,
         childAppearance: String,
+        userUID: String,
         onPageDone: (@Sendable (Int) -> Void)?
     ) async -> [StoryPage] {
 
@@ -252,7 +255,8 @@ class AIService {
                         let path = try await ImageStorageService.shared.save(
                             imageData: imgData,
                             storyId: storyId,
-                            pageNumber: page.pageNumber
+                            pageNumber: page.pageNumber,
+                            userUID: userUID
                         )
                         return (index, path)
                     } catch {

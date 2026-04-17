@@ -17,6 +17,7 @@ enum AppScreen: String, Equatable {
 }
 
 struct ContentView: View {
+    @StateObject private var authVM = AuthViewModel()
     @StateObject private var storyVM = StoryViewModel()
     @StateObject private var photoVM = PhotoViewModel()
     @AppStorage("lastScreen") private var currentScreen: AppScreen = .home
@@ -24,10 +25,65 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Force full-screen background so ZStack never shrinks
             Color(hex: "F7F3ED")
                 .ignoresSafeArea()
 
+            if authVM.currentUser == nil {
+                LoginView(authVM: authVM)
+                    .transition(.opacity)
+            } else {
+                mainContent
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeInOut(duration: 0.25), value: currentScreen)
+        .animation(.easeInOut(duration: 0.3), value: authVM.currentUser == nil)
+        .onChange(of: authVM.currentUser) { _, newUser in
+            if let user = newUser {
+                storyVM.configure(userUID: user.uid)
+            } else {
+                storyVM.configure(userUID: "")
+                currentScreen = .home
+            }
+        }
+        .onAppear {
+            guard !hasRestoredState else { return }
+            hasRestoredState = true
+
+            // Transient screens should not survive a relaunch
+            if currentScreen == .loading || currentScreen == .share
+                || currentScreen == .templatePreview || currentScreen == .templatePhotoUpload
+                || currentScreen == .storySetup || currentScreen == .photoUpload
+                || currentScreen == .aiTest {
+                currentScreen = .home
+                return
+            }
+
+            // Restore story reading state
+            if currentScreen == .storybook {
+                if !storyVM.restoreLastReading() {
+                    currentScreen = .home
+                }
+            }
+        }
+        .onChange(of: currentScreen) { oldValue, newValue in
+            if (newValue == .photoUpload && oldValue != .storySetup)
+                || newValue == .templatePhotoUpload {
+                photoVM.reset()
+            }
+            storyVM.persistReadingState()
+        }
+        .onChange(of: storyVM.currentPage) {
+            storyVM.persistReadingState()
+        }
+        .onChange(of: storyVM.currentStory) {
+            storyVM.persistReadingState()
+        }
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        ZStack {
             switch currentScreen {
             case .home:
                 HomeView(storyVM: storyVM, currentScreen: $currentScreen)
@@ -73,7 +129,7 @@ struct ContentView: View {
                     .transition(.opacity)
 
             case .profile:
-                ProfileView(storyVM: storyVM, currentScreen: $currentScreen)
+                ProfileView(storyVM: storyVM, authVM: authVM, currentScreen: $currentScreen)
                     .transition(.opacity)
 
             case .storyCalendar:
@@ -96,41 +152,6 @@ struct ContentView: View {
                 AITestView(currentScreen: $currentScreen)
                     .transition(.opacity)
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.easeInOut(duration: 0.25), value: currentScreen)
-        .onAppear {
-            guard !hasRestoredState else { return }
-            hasRestoredState = true
-
-            // Transient screens should not survive a relaunch
-            if currentScreen == .loading || currentScreen == .share
-                || currentScreen == .templatePreview || currentScreen == .templatePhotoUpload
-                || currentScreen == .storySetup || currentScreen == .photoUpload
-                || currentScreen == .aiTest {
-                currentScreen = .home
-                return
-            }
-
-            // Restore story reading state
-            if currentScreen == .storybook {
-                if !storyVM.restoreLastReading() {
-                    currentScreen = .home
-                }
-            }
-        }
-        .onChange(of: currentScreen) { oldValue, newValue in
-            if (newValue == .photoUpload && oldValue != .storySetup)
-                || newValue == .templatePhotoUpload {
-                photoVM.reset()
-            }
-            storyVM.persistReadingState()
-        }
-        .onChange(of: storyVM.currentPage) {
-            storyVM.persistReadingState()
-        }
-        .onChange(of: storyVM.currentStory) {
-            storyVM.persistReadingState()
         }
     }
 }

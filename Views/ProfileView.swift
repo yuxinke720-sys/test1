@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var storyVM: StoryViewModel
+    @ObservedObject var authVM: AuthViewModel
     @Binding var currentScreen: AppScreen
 
     var body: some View {
@@ -27,9 +28,7 @@ struct ProfileView: View {
                         SettingsRow(sfIcon: "questionmark.circle.fill", label: "Help & Support", iconBg: Color(hex: "F5F2EE")),
                     ])
 
-                    settingsSection(title: "", rows: [
-                        SettingsRow(sfIcon: "rectangle.portrait.and.arrow.right", label: "Sign Out", isDestructive: true, iconBg: Color(hex: "FFECEC")),
-                    ])
+                    signOutSection
 
                     Text("StoryMe v1.0.0").font(.system(size: 11)).foregroundColor(Color(hex: "B8B3AC"))
                         .padding(.top, 8).padding(.bottom, 40)
@@ -128,6 +127,31 @@ struct ProfileView: View {
             .shadow(color: .black.opacity(0.08), radius: 8, y: 3).padding(.horizontal, 18)
         }
         .padding(.top, 16).padding(.bottom, 14)
+    }
+
+    // MARK: - Sign Out Section
+    private var signOutSection: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            VStack(spacing: 0) {
+                Button {
+                    authVM.signOut()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "FF5252"))
+                            .frame(width: 32, height: 32).background(Color(hex: "FFECEC")).cornerRadius(9)
+                        Text("Sign Out").font(.system(size: 13, weight: .regular))
+                            .foregroundColor(Color(hex: "FF5252"))
+                        Spacer()
+                    }.padding(.horizontal, 14).padding(.vertical, 13)
+                }
+                .buttonStyle(.plain)
+            }
+            .background(Color(hex: "FFFFFF")).cornerRadius(16)
+            .shadow(color: .black.opacity(0.04), radius: 4, y: 2).padding(.horizontal, 18)
+        }
+        .padding(.bottom, 14)
     }
 
     // MARK: - Settings

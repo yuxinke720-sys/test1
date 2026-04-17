@@ -37,6 +37,8 @@
 		D2B49C932F8E675200CEA582 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D2B49C922F8E675200CEA582 /* GoogleService-Info.plist */; };
 		ED811BC715839CD9BE8BF144 /* StoryCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3B3E0E736228FDFA9C9C1B3 /* StoryCalendarView.swift */; };
 		EE5566778899001122334455 /* TemplatePhotoUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6677889900112233445566 /* TemplatePhotoUploadView.swift */; };
+		DEADBEEFA1B2C3D4E5F60718 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718DEADBEEF /* AuthViewModel.swift */; };
+		ABCD0001CAFEBABE12345678 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFEBABE12345678ABCD0001 /* LoginView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +68,8 @@
 		E3B3E0E736228FDFA9C9C1B3 /* StoryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryCalendarView.swift; sourceTree = "<group>"; };
 		F105A20727D22943FF9A31DC /* Story.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Story.swift; sourceTree = "<group>"; };
 		FF6677889900112233445566 /* TemplatePhotoUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplatePhotoUploadView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718DEADBEEF /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		CAFEBABE12345678ABCD0001 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +111,7 @@
 		767C36F8C1A8B2C22CC7ABB5 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F60718DEADBEEF /* AuthViewModel.swift */,
 				C25E26BCD21C05D3D8D7D21A /* PhotoViewModel.swift */,
 				691A0DAD9C75F5304CC195BD /* StoryViewModel.swift */,
 			);
@@ -158,6 +163,7 @@
 			children = (
 				637BBA0705C9DBD7562D84A4 /* HomeView.swift */,
 				94DBE56DE267AB97D6000AD1 /* LoadingView.swift */,
+				CAFEBABE12345678ABCD0001 /* LoginView.swift */,
 				2559185F63C59BCBB0403BEB /* MyBooksView.swift */,
 				58E39FF8A232C35AB48EEF5B /* PhotoUploadView.swift */,
 				041929E2404224D232716927 /* ProfileView.swift */,
@@ -297,6 +303,8 @@
 				EE5566778899001122334455 /* TemplatePhotoUploadView.swift in Sources */,
 				AABB112233445566778899AA /* StoryTemplateView.swift in Sources */,
 				A1B2C3D4E5F60718A1B2C3D4 /* ImageStorageService.swift in Sources */,
+				DEADBEEFA1B2C3D4E5F60718 /* AuthViewModel.swift in Sources */,
+				ABCD0001CAFEBABE12345678 /* LoginView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

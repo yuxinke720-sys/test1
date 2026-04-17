@@ -34,12 +34,22 @@ class StoryViewModel: ObservableObject {
     // Child appearance (set from PhotoViewModel before generation)
     var childAppearanceDescription: String = ""
 
-    // MARK: - Persistence Keys
-    private static let savedStoriesKey = "savedStories"
-    private static let lastStoryIDKey = "lastStoryID"
-    private static let lastPageKey = "lastPage"
+    // MARK: - Per-user data isolation
+    var userUID: String = ""
+
+    private var savedStoriesKey: String { "savedStories_\(userUID)" }
+    private var lastStoryIDKey: String  { "lastStoryID_\(userUID)" }
+    private var lastPageKey: String     { "lastPage_\(userUID)" }
 
     init() {
+        // Do not load stories here — wait for configure(userUID:)
+    }
+
+    func configure(userUID: String) {
+        self.userUID = userUID
+        savedStories = []
+        currentStory = nil
+        currentPage = 0
         loadSavedStories()
     }
 
@@ -90,6 +100,7 @@ class StoryViewModel: ObservableObject {
                 style: selectedStyle,
                 pageCount: totalPages,
                 childAppearance: childAppearanceDescription,
+                userUID: userUID,
                 onPageIllustrated: { [weak self] completed in
                     Task { @MainActor in
                         guard let self else { return }
@@ -197,14 +208,14 @@ class StoryViewModel: ObservableObject {
 
     func deleteStory(_ story: Story) {
         savedStories.removeAll { $0.id == story.id }
-        ImageStorageService.shared.deleteStoryImages(storyId: story.id)
+        ImageStorageService.shared.deleteStoryImages(storyId: story.id, userUID: userUID)
         persistSavedStories()
     }
 
     func deleteStory(at offsets: IndexSet) {
         let storiesToDelete = offsets.map { savedStories[$0] }
         for story in storiesToDelete {
-            ImageStorageService.shared.deleteStoryImages(storyId: story.id)
+            ImageStorageService.shared.deleteStoryImages(storyId: story.id, userUID: userUID)
         }
         savedStories.remove(atOffsets: offsets)
         persistSavedStories()
@@ -213,7 +224,11 @@ class StoryViewModel: ObservableObject {
     // MARK: - Persistence
 
     private func loadSavedStories() {
-        guard let data = UserDefaults.standard.data(forKey: Self.savedStoriesKey) else {
+        guard !userUID.isEmpty else {
+            print("[StoryVM] No userUID set — skipping load")
+            return
+        }
+        guard let data = UserDefaults.standard.data(forKey: savedStoriesKey) else {
             print("[StoryVM] No saved stories data in UserDefaults")
             return
         }
@@ -259,7 +274,8 @@ class StoryViewModel: ObservableObject {
                     let path = try await ImageStorageService.shared.save(
                         imageData: legacyData,
                         storyId: story.id,
-                        pageNumber: page.pageNumber
+                        pageNumber: page.pageNumber,
+                        userUID: userUID
                     )
                     migratedStories[storyIndex].pages[pageIndex].imageStoragePath = path
                     migratedStories[storyIndex].pages[pageIndex].legacyImageData = nil
@@ -282,33 +298,33 @@ class StoryViewModel: ObservableObject {
 
     func persistSavedStories() {
         if let data = try? JSONEncoder().encode(savedStories) {
-            UserDefaults.standard.set(data, forKey: Self.savedStoriesKey)
+            UserDefaults.standard.set(data, forKey: savedStoriesKey)
         }
     }
 
     func persistReadingState() {
         if let story = currentStory {
-            UserDefaults.standard.set(story.id.uuidString, forKey: Self.lastStoryIDKey)
+            UserDefaults.standard.set(story.id.uuidString, forKey: lastStoryIDKey)
             // Save page progress back into the story in savedStories
             if let index = savedStories.firstIndex(where: { $0.id == story.id }) {
                 savedStories[index].lastReadPage = currentPage
                 persistSavedStories()
             }
         } else {
-            UserDefaults.standard.removeObject(forKey: Self.lastStoryIDKey)
+            UserDefaults.standard.removeObject(forKey: lastStoryIDKey)
         }
-        UserDefaults.standard.set(currentPage, forKey: Self.lastPageKey)
+        UserDefaults.standard.set(currentPage, forKey: lastPageKey)
     }
 
     /// Attempts to restore the last reading session. Returns `true` if successful.
     func restoreLastReading() -> Bool {
-        guard let idString = UserDefaults.standard.string(forKey: Self.lastStoryIDKey),
+        guard let idString = UserDefaults.standard.string(forKey: lastStoryIDKey),
               let id = UUID(uuidString: idString),
               let story = savedStories.first(where: { $0.id == id })
         else { return false }
 
         currentStory = story
-        let page = UserDefaults.standard.integer(forKey: Self.lastPageKey)
+        let page = UserDefaults.standard.integer(forKey: lastPageKey)
         currentPage = page < story.pages.count ? page : 0
         return true
     }

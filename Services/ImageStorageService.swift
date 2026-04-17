@@ -4,7 +4,7 @@ import UIKit
 /// in the app's Documents directory.
 ///
 /// On-disk layout:
-///   Documents/stories/{storyId}/page_{pageNumber}.jpg
+///   Documents/users/{uid}/stories/{storyId}/page_{pageNumber}.jpg
 ///
 /// Only **relative** paths (e.g. "stories/<uuid>/page_1.jpg") are
 /// stored in the data model so sandbox path changes across app
@@ -17,8 +17,8 @@ struct ImageStorageService {
     // MARK: - Save
 
     /// Writes `imageData` to disk and returns the **relative** path.
-    func save(imageData: Data, storyId: UUID, pageNumber: Int) async throws -> String {
-        let relativePath = "stories/\(storyId.uuidString)/page_\(pageNumber).jpg"
+    func save(imageData: Data, storyId: UUID, pageNumber: Int, userUID: String) async throws -> String {
+        let relativePath = "users/\(userUID)/stories/\(storyId.uuidString)/page_\(pageNumber).jpg"
         let fileURL = Self.documentsURL.appendingPathComponent(relativePath)
 
         // Ensure directory exists
@@ -29,6 +29,7 @@ struct ImageStorageService {
 
         try imageData.write(to: fileURL, options: .atomic)
         print("[ImageStorage] Saved \(imageData.count) bytes → \(relativePath)")
+        print("Absolute Documents path: \(dirURL.path)")
         return relativePath
     }
 
@@ -48,8 +49,10 @@ struct ImageStorageService {
     // MARK: - Delete
 
     /// Removes the entire directory for a story (all page images).
-    func deleteStoryImages(storyId: UUID) {
+    func deleteStoryImages(storyId: UUID, userUID: String) {
         let dirURL = Self.documentsURL
+            .appendingPathComponent("users")
+            .appendingPathComponent(userUID)
             .appendingPathComponent("stories")
             .appendingPathComponent(storyId.uuidString)
         try? FileManager.default.removeItem(at: dirURL)
