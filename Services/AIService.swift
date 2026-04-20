@@ -31,11 +31,17 @@ class AIService {
         }
 
         let prompt = """
-        You are a children's book illustrator assistant. Analyze the child in these photos and \
-        return ONLY a concise appearance description in English (max 40 words). Cover: hair color \
-        and style, eye color/shape, skin tone, face shape. Example output: \
-        'A young girl with curly auburn hair, bright green eyes, fair skin, and a round cheerful \
-        face.' Do not include names, clothing, or background details.
+        You are a children's book character designer. Carefully examine the child in these photos \
+        and return ONLY a detailed appearance description in English (max 80 words). \
+        You MUST include ALL of the following: \
+        (1) Hair: exact color, length, and style (e.g. black shoulder-length braids with pink bows), \
+        (2) Eyes: color and shape, \
+        (3) Skin tone, \
+        (4) Face shape, \
+        (5) Top/jacket: exact color, style, and any distinctive details (e.g. pink zip-up hoodie with white drawstrings), \
+        (6) Bottom: exact color and style (e.g. light blue denim shorts), \
+        (7) Any accessories (e.g. white sneakers, red hair clips). \
+        Output a single fluent sentence. Do not include names, background, or any explanation.
         """
 
         let result = try await callFunction("analyzeAppearance", data: [
@@ -54,7 +60,7 @@ class AIService {
     }
 
     /// Resize a UIImage so its longest side is at most `maxSide` points.
-    private static func resizeImage(_ image: UIImage, maxSide: CGFloat) -> UIImage {
+    static func resizeImage(_ image: UIImage, maxSide: CGFloat) -> UIImage {
         let size = image.size
         guard max(size.width, size.height) > maxSide else { return image }
         let scale = maxSide / max(size.width, size.height)
@@ -71,20 +77,23 @@ class AIService {
         style: StoryStyle,
         pageCount: Int,
         childAppearance: String = "",
+        referenceImageB64: String = "",
         userUID: String = "",
         onPageIllustrated: (@Sendable (Int) -> Void)? = nil
     ) async throws -> Story {
 
+        print("[AIService] generateStory called — childName: \(childName), theme: \(theme)")
+
         // 1. Generate story text via Cloud Function
         print("[AIService] Generating story text via Firebase…")
-        var pages = try await callGenerateStory(
+        var (generatedTitle, pages) = try await callGenerateStory(
             childName: childName,
             theme: theme,
             style: style,
             pageCount: pageCount,
             childAppearance: childAppearance
         )
-        print("[AIService] Story text generated: \(pages.count) pages")
+        print("[AIService] Story text generated: \(pages.count) pages, title: \(generatedTitle)")
 
         // Use a stable ID for this story so images land in the right directory
         let storyId = UUID()
@@ -95,12 +104,25 @@ class AIService {
             for: pages, storyId: storyId,
             childName: childName, style: style,
             childAppearance: childAppearance,
+            referenceImageB64: referenceImageB64,
             userUID: userUID,
             onPageDone: onPageIllustrated
         )
 
-        let title = "\(childName)'s \(theme.prefix(30).trimmingCharacters(in: .whitespaces)) Story"
-        return Story(id: storyId, title: title, childName: childName, theme: theme, style: style, pages: pages)
+        let finalTitle: String
+        if generatedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let safeTheme = theme
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .components(separatedBy: .whitespaces)
+                .prefix(3)
+                .joined(separator: " ")
+            finalTitle = "\(childName)'s \(safeTheme) Story"
+            print("[AIService] Title: using fallback — \"\(finalTitle)\"")
+        } else {
+            finalTitle = generatedTitle
+            print("[AIService] Title: using AI-generated — \"\(finalTitle)\"")
+        }
+        return Story(id: storyId, title: finalTitle, childName: childName, theme: theme, style: style, pages: pages)
     }
 
     // MARK: - Text-only generation (for testing)
@@ -120,10 +142,12 @@ class AIService {
 
     // MARK: - Image-only generation (for testing)
 
-    func generateImage(prompt: String) async throws -> Data {
-        let result = try await callFunction("generateImage", data: [
-            "prompt": prompt
-        ])
+    func generateImage(prompt: String, referenceImageB64: String = "") async throws -> Data {
+        var data: [String: Any] = ["prompt": prompt]
+        if !referenceImageB64.isEmpty {
+            data["referenceImageB64"] = referenceImageB64
+        }
+        let result = try await callFunction("generateImage", data: data)
         guard let b64 = result["imageData"] as? String,
               let imageData = Data(base64Encoded: b64)
         else {
@@ -162,14 +186,14 @@ class AIService {
     }
 
     /// Calls the generateStory Cloud Function with structured parameters
-    /// and parses the response into [StoryPage].
+    /// and parses the response into a title + [StoryPage].
     private func callGenerateStory(
         childName: String,
         theme: String,
         style: StoryStyle,
         pageCount: Int,
         childAppearance: String
-    ) async throws -> [StoryPage] {
+    ) async throws -> (title: String, pages: [StoryPage]) {
 
         var data: [String: Any] = [
             "childName": childName,
@@ -193,7 +217,7 @@ class AIService {
 
     // MARK: - Response Parsing
 
-    private func parseStoryJSON(_ rawText: String) throws -> [StoryPage] {
+    private func parseStoryJSON(_ rawText: String) throws -> (title: String, pages: [StoryPage]) {
         // Strip markdown code fences
         var clean = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         if clean.hasPrefix("```json") { clean = String(clean.dropFirst(7)) }
@@ -201,9 +225,44 @@ class AIService {
         if clean.hasSuffix("```") { clean = String(clean.dropLast(3)) }
         clean = clean.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard let jsonData = clean.data(using: .utf8),
-              let arr = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
-        else { throw AIServiceError.parsingError }
+        // Diagnostic: log first 300 chars of cleaned model output
+        let preview = String(clean.prefix(300))
+        print("[AIService] parseStoryJSON raw (first 300): \(preview)")
+
+        guard let jsonData = clean.data(using: .utf8) else {
+            throw AIServiceError.parsingError
+        }
+
+        let parsed = try JSONSerialization.jsonObject(with: jsonData)
+
+        let arr: [[String: Any]]
+        var title = ""
+
+        if let directArray = parsed as? [[String: Any]] {
+            // Model returned a plain array (ignored new schema) — still usable, no title
+            print("[AIService] parseStoryJSON WARNING: model returned plain array, no title available")
+            arr = directArray
+        } else if let wrapper = parsed as? [String: Any] {
+            title = wrapper["title"] as? String ?? ""
+            if title.isEmpty {
+                print("[AIService] parseStoryJSON WARNING: wrapper has no 'title' key. Keys: \(wrapper.keys.sorted())")
+            } else {
+                print("[AIService] parseStoryJSON: extracted title = \"\(title)\"")
+            }
+            if let nested = wrapper["pages"] as? [[String: Any]] {
+                arr = nested
+            } else if let nestedData = wrapper["storyData"] as? String {
+                // storyData is a nested JSON string — recurse
+                let result = try parseStoryJSON(nestedData)
+                return (title: title.isEmpty ? result.title : title, pages: result.pages)
+            } else {
+                print("[AIService] parseStoryJSON: wrapper keys = \(wrapper.keys.sorted()), no usable array found")
+                throw AIServiceError.parsingError
+            }
+        } else {
+            print("[AIService] parseStoryJSON: unexpected root type: \(type(of: parsed))")
+            throw AIServiceError.parsingError
+        }
 
         let pages = arr.compactMap { dict -> StoryPage? in
             guard let num = dict["pageNumber"] as? Int,
@@ -218,7 +277,7 @@ class AIService {
         }
 
         guard !pages.isEmpty else { throw AIServiceError.parsingError }
-        return pages
+        return (title: title, pages: pages)
     }
 
     // MARK: - Image Generation (via Cloud Function)
@@ -229,16 +288,26 @@ class AIService {
         childName: String,
         style: StoryStyle,
         childAppearance: String,
+        referenceImageB64: String = "",
         userUID: String,
         onPageDone: (@Sendable (Int) -> Void)?
     ) async -> [StoryPage] {
 
-        // Build the appearance prefix once
-        let appearanceClause: String
+        print("[AIService] referenceImageB64 length: \(referenceImageB64.count)")
+
+        // Build the appearance block once — placed first for maximum model attention
+        let appearanceBlock: String
         if !childAppearance.trimmingCharacters(in: .whitespaces).isEmpty {
-            appearanceClause = "The child protagonist has the following appearance: \(childAppearance). "
+            appearanceBlock = "SUBJECT: A child named \(childName). CRITICAL APPEARANCE — the child MUST strictly match ALL of the following in every detail: \(childAppearance). MANDATORY: Maintain the exact same hairstyle, hair color, and outfit from this description throughout the entire illustration. Do not alter or simplify any physical feature."
         } else {
-            appearanceClause = ""
+            appearanceBlock = "SUBJECT: A child named \(childName)."
+        }
+
+        let referenceClause: String
+        if !referenceImageB64.isEmpty {
+            referenceClause = "Match the character's exact clothing colors, hairstyle, and accessories as shown in the reference photo. "
+        } else {
+            referenceClause = ""
         }
 
         var result = pages
@@ -246,11 +315,21 @@ class AIService {
         await withTaskGroup(of: (Int, String?).self) { group in
             for (index, page) in pages.enumerated() {
                 group.addTask {
-                    let imagePrompt = "\(appearanceClause)Children's book illustration for a \(style.rawValue) children's story. Scene: \(page.imageDescription). Style: warm, colorful, cartoon, soft lighting, friendly characters. A child named \(childName)."
+                    let vibeStyleClause: String
+                    switch style {
+                    case .warmCozy:
+                        vibeStyleClause = "Needle felted storybook style, thick felted wool texture on the surface, minimalist and poetic flat art style, mysterious and serene, tiny intricate wool fibers covering the entire scene, fuzzy pilling effect, felt craft aesthetic, composed of fine wool fuzz. "
+                        print("[AIService] Warm & Cozy vibe: injecting needle felt texture prompt")
+                    default:
+                        vibeStyleClause = ""
+                    }
+
+                    let imagePrompt = "\(appearanceBlock) \(referenceClause)SCENE: \(page.imageDescription). \(vibeStyleClause)ART DIRECTION: Children's book illustration, \(style.rawValue) style, warm colorful lighting, soft friendly atmosphere."
+                    print("[AIService] imagePrompt preview: \(imagePrompt.prefix(200))")
                     print("[AIService] Generating image \(index + 1)/\(pages.count)")
 
                     do {
-                        let imgData = try await self.generateImage(prompt: imagePrompt)
+                        let imgData = try await self.generateImage(prompt: imagePrompt, referenceImageB64: referenceImageB64)
                         print("[AIService] Image \(index + 1) generated: \(imgData.count) bytes")
                         let path = try await ImageStorageService.shared.save(
                             imageData: imgData,

@@ -64,8 +64,8 @@ export const generateStory = onCall(
     const systemPrompt =
       "You are a children's storybook author who writes warm, engaging, " +
       "age-appropriate stories for 3–6 year olds. " +
-      "You respond ONLY with a valid JSON array — no markdown, no code " +
-      "fences, no extra text.";
+      "You respond ONLY with a valid JSON object — no markdown, no code " +
+      "fences, no extra text. Never return a plain JSON array.";
 
     const userPrompt =
       `Write a ${pageCount}-page illustrated children's story.\n\n` +
@@ -74,12 +74,17 @@ export const generateStory = onCall(
       `Style: ${style}` +
       `${appearanceNote}\n\n` +
       "For each page, provide:\n" +
-      "1. The story text (2-3 sentences, simple vocabulary)\n" +
-      "2. A detailed image description for an illustrator (1-2 sentences)\n" +
-      '3. A single SF Symbol icon name (e.g. "star.fill", "heart.fill")\n\n' +
-      "Respond ONLY with a JSON array:\n" +
-      '[{"pageNumber":1,"text":"...","imageDescription":"...","emoji":"star.fill"}]\n\n' +
-      `Make ${childName} the hero. End with a positive message.`;
+      "1. text: The story text (2-3 sentences, simple vocabulary)\n" +
+      "2. imageDescription: A detailed scene description for an illustrator (1-2 sentences)\n" +
+      '3. emoji: A single SF Symbol icon name (e.g. "star.fill", "heart.fill")\n\n' +
+      `Make ${childName} the hero. End with a positive message.\n\n` +
+      "CRITICAL: You MUST respond with a single JSON object, not an array.\n" +
+      "The response must start with { and end with }.\n" +
+      "Format:\n" +
+      `{"title":"[creative title max 6 words]","pages":[{"pageNumber":1,"text":"...","imageDescription":"...","emoji":"star.fill"},...]}\n\n` +
+      "Do NOT return a plain array starting with [.\n" +
+      "Do NOT wrap in markdown code fences.\n" +
+      "Do NOT add any text before or after the JSON.";
 
     // ── 4. Call Volcengine Doubao API ───────────────────────────────
     logger.info("generateStory called", {childName, theme, style, pageCount});
@@ -268,13 +273,14 @@ export const analyzeAppearance = onCall(
 
 interface GenerateImageRequest {
   prompt: string;
+  referenceImageB64?: string;
 }
 
 export const generateImage = onCall(
   {region: "asia-northeast1", timeoutSeconds: 120},
   async (request) => {
     const data = request.data as Partial<GenerateImageRequest>;
-    const {prompt} = data;
+    const {prompt, referenceImageB64} = data;
 
     if (!prompt) {
       throw new HttpsError(
@@ -296,8 +302,25 @@ export const generateImage = onCall(
 
     logger.info("generateImage called", {
       promptLength: prompt.length,
+      hasReference: !!referenceImageB64,
       prompt: prompt,
     });
+
+    // Build request body — multimodal if reference image is provided
+    const messages = referenceImageB64
+      ? [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: {url: `data:image/jpeg;base64,${referenceImageB64}`},
+              },
+              {type: "text", text: prompt},
+            ],
+          },
+        ]
+      : [{role: "user", content: prompt}];
 
     let response: Response;
     try {
@@ -309,7 +332,7 @@ export const generateImage = onCall(
         },
         body: JSON.stringify({
           model: DOUBAO_IMAGE_MODEL,
-          prompt: prompt,
+          messages: messages,
           response_format: "b64_json",
         }),
       });

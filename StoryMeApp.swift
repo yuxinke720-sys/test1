@@ -12,11 +12,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         FirebaseApp.configure()
 
         #if DEBUG
-        // 在 Functions 实例创建之前，指定模拟器地址
+        Auth.auth().useEmulator(withHost: "127.0.0.1", port: 9099)
         Functions.functions(region: "asia-northeast1")
             .useEmulator(withHost: "127.0.0.1", port: 5001)
-        Auth.auth().useEmulator(withHost: "127.0.0.1", port: 9099)
-        print("[Firebase] Emulators configured — Functions:5001, Auth:9099")
+        print("[Firebase] Emulators configured — Auth:9099, Functions:5001")
         #endif
 
         return true

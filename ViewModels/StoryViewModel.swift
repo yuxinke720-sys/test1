@@ -33,6 +33,8 @@ class StoryViewModel: ObservableObject {
 
     // Child appearance (set from PhotoViewModel before generation)
     var childAppearanceDescription: String = ""
+    // Reference photo base64 (set from PhotoViewModel before generation)
+    var referenceImageB64: String = ""
 
     // MARK: - Per-user data isolation
     var userUID: String = ""
@@ -100,6 +102,7 @@ class StoryViewModel: ObservableObject {
                 style: selectedStyle,
                 pageCount: totalPages,
                 childAppearance: childAppearanceDescription,
+                referenceImageB64: referenceImageB64,
                 userUID: userUID,
                 onPageIllustrated: { [weak self] completed in
                     Task { @MainActor in

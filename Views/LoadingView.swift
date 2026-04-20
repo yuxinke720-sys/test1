@@ -58,6 +58,15 @@ struct LoadingView: View {
             // Transfer photo-derived appearance into storyVM before generation starts
             storyVM.childAppearanceDescription = photoVM.childAppearanceDescription
 
+            // Extract first photo as base64 reference for character consistency
+            if let firstImage = photoVM.selectedImages.first {
+                let resized = AIService.resizeImage(firstImage, maxSide: 512)
+                if let jpegData = resized.jpegData(compressionQuality: 0.85) {
+                    storyVM.referenceImageB64 = jpegData.base64EncodedString()
+                    print("[LoadingView] Reference image B64 length: \(storyVM.referenceImageB64.count)")
+                }
+            }
+
             Task { await storyVM.generateStory() }
         }
         .onChange(of: storyVM.currentStory) {
