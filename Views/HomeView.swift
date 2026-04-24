@@ -478,6 +478,7 @@ struct HomeView: View {
         let emojis = ["sun.max.fill", "leaf.fill", "flame.fill", "figure.walk", "tree.fill", "face.smiling", "star.fill", "moon.fill"]
         let pages = (0..<8).map { i in
             StoryPage(pageNumber: i + 1, text: sampleTexts[i], emoji: emojis[i])
+    
         }
         storyVM.currentStory = Story(title: title, childName: storyVM.childName, theme: theme, pages: pages)
         storyVM.currentPage = 0

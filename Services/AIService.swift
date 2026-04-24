@@ -99,24 +99,23 @@ class AIService {
         let storyId = UUID()
 
         // 2. Generate illustrations concurrently — saved to disk
-        print("[AIService] Generating illustrations…")
-        pages = await generateIllustrations(
-            for: pages, storyId: storyId,
-            childName: childName, style: style,
-            childAppearance: childAppearance,
-            referenceImageB64: referenceImageB64,
-            userUID: userUID,
-            onPageDone: onPageIllustrated
-        )
+        if AppConfig.skipImageGeneration {
+            print("[AIService] ⚠️ Developer Mode: Skipping image generation to save tokens")
+        } else {
+            print("[AIService] Generating illustrations…")
+            pages = await generateIllustrations(
+                for: pages, storyId: storyId,
+                childName: childName, style: style,
+                childAppearance: childAppearance,
+                referenceImageB64: referenceImageB64,
+                userUID: userUID,
+                onPageDone: onPageIllustrated
+            )
+        }
 
         let finalTitle: String
         if generatedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            let safeTheme = theme
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .components(separatedBy: .whitespaces)
-                .prefix(3)
-                .joined(separator: " ")
-            finalTitle = "\(childName)'s \(safeTheme) Story"
+            finalTitle = "\(childName)'s Magical Adventure"
             print("[AIService] Title: using fallback — \"\(finalTitle)\"")
         } else {
             finalTitle = generatedTitle

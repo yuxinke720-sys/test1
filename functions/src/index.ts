@@ -62,10 +62,15 @@ export const generateStory = onCall(
       : "";
 
     const systemPrompt =
-      "You are a children's storybook author who writes warm, engaging, " +
-      "age-appropriate stories for 3–6 year olds. " +
-      "You respond ONLY with a valid JSON object — no markdown, no code " +
-      "fences, no extra text. Never return a plain JSON array.";
+      "You are a children's storybook author for ages 3–6. " +
+      "You MUST respond with ONLY a JSON object — never a JSON array. " +
+      "The JSON object must have exactly two keys: " +
+      "\"title\" (a creative children's book title, max 5 words, do NOT copy the user's prompt) " +
+      "and \"pages\" (an array of page objects). " +
+      "A root-level array like [{...}] is INVALID. " +
+      "The response MUST start with { and end with }. " +
+      "Example: {\"title\":\"Luna's Starry Night\",\"pages\":[{\"pageNumber\":1,\"text\":\"...\",\"imageDescription\":\"...\",\"emoji\":\"star.fill\"}]} " +
+      "No markdown, no code fences, no extra text.";
 
     const userPrompt =
       `Write a ${pageCount}-page illustrated children's story.\n\n` +
@@ -78,13 +83,13 @@ export const generateStory = onCall(
       "2. imageDescription: A detailed scene description for an illustrator (1-2 sentences)\n" +
       '3. emoji: A single SF Symbol icon name (e.g. "star.fill", "heart.fill")\n\n' +
       `Make ${childName} the hero. End with a positive message.\n\n` +
-      "CRITICAL: You MUST respond with a single JSON object, not an array.\n" +
+      "CRITICAL FORMAT RULE: Your response MUST be a JSON object, NOT an array.\n" +
+      "Required shape: " +
+      `{"title":"${childName}'s Sunny Day","pages":[{"pageNumber":1,"text":"...","imageDescription":"...","emoji":"star.fill"}]}\n\n` +
+      "FORBIDDEN: Do NOT return a plain array like [{...}]. Arrays are INVALID.\n" +
+      "FORBIDDEN: Do NOT return a plain array starting with [.\n" +
       "The response must start with { and end with }.\n" +
-      "Format:\n" +
-      `{"title":"[creative title max 6 words]","pages":[{"pageNumber":1,"text":"...","imageDescription":"...","emoji":"star.fill"},...]}\n\n` +
-      "Do NOT return a plain array starting with [.\n" +
-      "Do NOT wrap in markdown code fences.\n" +
-      "Do NOT add any text before or after the JSON.";
+      "Do NOT wrap in markdown code fences. Do NOT add any text outside the JSON.";
 
     // ── 4. Call Volcengine Doubao API ───────────────────────────────
     logger.info("generateStory called", {childName, theme, style, pageCount});
@@ -104,6 +109,7 @@ export const generateStory = onCall(
             {role: "user", content: userPrompt},
           ],
           max_tokens: 4000,
+          response_format: {type: "json_object"},
         }),
       });
     } catch (err: unknown) {
