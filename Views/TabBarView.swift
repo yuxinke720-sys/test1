@@ -1,12 +1,13 @@
 import SwiftUI
 
 enum TabBarItem: String {
-    case home, storyTemplates, myBooks, profile
+    case home, create, community, myBooks, profile
 
     var sfSymbol: String {
         switch self {
         case .home: return "house.fill"
-        case .storyTemplates: return "sparkles"
+        case .create: return "plus.circle.fill"
+        case .community: return "person.2.wave.2.fill"
         case .myBooks: return "books.vertical.fill"
         case .profile: return "person.fill"
         }
@@ -15,7 +16,8 @@ enum TabBarItem: String {
     var label: String {
         switch self {
         case .home: return "Home"
-        case .storyTemplates: return "Templates"
+        case .create: return "Create"
+        case .community: return "Community"
         case .myBooks: return "My Books"
         case .profile: return "Profile"
         }
@@ -24,7 +26,8 @@ enum TabBarItem: String {
     var screen: AppScreen {
         switch self {
         case .home: return .home
-        case .storyTemplates: return .storyLibrary
+        case .create: return .create
+        case .community: return .community
         case .myBooks: return .myBooks
         case .profile: return .profile
         }
@@ -33,9 +36,9 @@ enum TabBarItem: String {
 
 func smTabBar(active: TabBarItem, currentScreen: Binding<AppScreen>) -> some View {
     HStack {
-        ForEach([TabBarItem.home, .storyTemplates, .myBooks, .profile], id: \.self) { item in
+        ForEach([TabBarItem.home, .create, .community, .myBooks, .profile], id: \.self) { item in
             Button {
-                if item != active {
+                if item.screen != currentScreen.wrappedValue {
                     currentScreen.wrappedValue = item.screen
                 }
             } label: {
@@ -49,6 +52,7 @@ func smTabBar(active: TabBarItem, currentScreen: Binding<AppScreen>) -> some Vie
                 }
                 .frame(maxWidth: .infinity)
             }
+            .coachMarkTarget("tab.\(item.rawValue)")
         }
     }
     .padding(.top, 10)
