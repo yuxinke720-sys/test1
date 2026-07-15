@@ -174,7 +174,7 @@ struct HomeView: View {
                 Spacer().frame(height: 8)
 
                 Button {
-                    currentScreen = .photoUpload
+                    currentScreen = .create
                 } label: {
                     HStack(spacing: 6) {
                         Text("Create Now")

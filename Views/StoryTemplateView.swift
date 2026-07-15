@@ -31,7 +31,7 @@ struct StoryTemplateView: View {
             VStack(spacing: 0) {
                 navBar
                 scrollContent
-                smTabBar(active: .storyTemplates, currentScreen: $currentScreen)
+                smTabBar(active: .create, currentScreen: $currentScreen)
             }
         }
     }
