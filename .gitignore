@@ -1,1 +1,33 @@
+# 密钥 / 凭据 —— 仓库是公开的，绝不可提交
 Secrets.xcconfig
+GoogleService-Info.plist
+functions/.env
+functions/.env.*
+!functions/.env.example
+
+# 依赖与构建产物
+functions/node_modules/
+functions/lib/
+build/
+DerivedData/
+*.xcarchive
+
+# Firebase 模拟器
+functions/saved_data/
+.firebase/
+*-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+
+# Xcode 用户态
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# macOS
+.DS_Store
+
+# Agent 工具配置
+.claude/
+.agents/
