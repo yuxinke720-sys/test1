@@ -13,11 +13,11 @@ enum AppScreen: String, Equatable {
     case storyLibrary
     case templatePreview
     case templatePhotoUpload
-    case aiTest
     case create
     case community
     case growthBook
     case growthReader
+    case childProfile
 }
 
 struct ContentView: View {
@@ -26,6 +26,7 @@ struct ContentView: View {
     @StateObject private var settingsVM = SettingsViewModel()
     @StateObject private var growthVM = GrowthBookViewModel()
     @StateObject private var authVM = AuthViewModel()
+    @StateObject private var childVM = ChildProfileViewModel()
     @AppStorage("lastScreen") private var currentScreen: AppScreen = .home
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @State private var hasRestoredState = false
@@ -47,12 +48,15 @@ struct ContentView: View {
             if let user = newUser {
                 storyVM.configure(userUID: user.uid)
                 growthVM.configure(userUID: user.uid)
+                childVM.configure(userUID: user.uid)
+                syncChildName()
                 #if DEBUG
                 applyDebugLaunchArguments()
                 #endif
             } else {
                 storyVM.configure(userUID: "")
                 growthVM.configure(userUID: "")
+                childVM.configure(userUID: "")
                 currentScreen = .home
             }
         }
@@ -63,8 +67,7 @@ struct ContentView: View {
             // Transient screens should not survive a relaunch
             if currentScreen == .loading || currentScreen == .share
                 || currentScreen == .templatePreview || currentScreen == .templatePhotoUpload
-                || currentScreen == .storySetup || currentScreen == .photoUpload
-                || currentScreen == .aiTest {
+                || currentScreen == .storySetup || currentScreen == .photoUpload {
                 currentScreen = .home
                 return
             }
@@ -89,6 +92,7 @@ struct ContentView: View {
             }
             storyVM.persistReadingState()
         }
+        .onChange(of: childVM.child) { _, _ in syncChildName() }
         .onChange(of: storyVM.currentPage) {
             storyVM.persistReadingState()
         }
@@ -101,6 +105,15 @@ struct ContentView: View {
     /// Dev/QA shortcut: launch with `-debugOpenScreen growthBook` (any AppScreen raw value)
     /// and optionally `-debugCelebrate YES` to jump straight to a screen for screenshots.
     /// Growth screens open the first in-progress (or completed, for the reader) book.
+    /// The child profile is the one place the name is edited, so story generation
+    /// reads it from there instead of keeping its own copy.
+    private func syncChildName() {
+        let name = childVM.child.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        storyVM.childName = name
+        storyVM.childProfileNote = childVM.child.promptDescriptor
+    }
+
     private func applyDebugLaunchArguments() {
         let defaults = UserDefaults.standard
         guard let raw = defaults.string(forKey: "debugOpenScreen"), let screen = AppScreen(rawValue: raw) else { return }
@@ -147,7 +160,7 @@ struct ContentView: View {
                     .transition(.opacity)
 
             case .loading:
-                LoadingView(storyVM: storyVM, currentScreen: $currentScreen)
+                LoadingView(storyVM: storyVM, photoVM: photoVM, currentScreen: $currentScreen)
                     .transition(.opacity)
 
             case .storybook:
@@ -178,7 +191,7 @@ struct ContentView: View {
                     .transition(.opacity)
 
             case .profile:
-                ProfileView(storyVM: storyVM, authVM: authVM, settingsVM: settingsVM, currentScreen: $currentScreen)
+                ProfileView(storyVM: storyVM, authVM: authVM, settingsVM: settingsVM, childVM: childVM, currentScreen: $currentScreen)
                     .transition(.opacity)
 
             case .storyCalendar:
@@ -197,10 +210,6 @@ struct ContentView: View {
                 TemplatePhotoUploadView(storyVM: storyVM, photoVM: photoVM, currentScreen: $currentScreen)
                     .transition(.opacity)
 
-            case .aiTest:
-                AITestView(currentScreen: $currentScreen)
-                    .transition(.opacity)
-
             case .create:
                 CreateHubView(storyVM: storyVM, growthVM: growthVM, currentScreen: $currentScreen)
                     .transition(.opacity)
@@ -211,6 +220,10 @@ struct ContentView: View {
 
             case .growthBook:
                 GrowthBookDetailView(growthVM: growthVM, currentScreen: $currentScreen)
+                    .transition(.opacity)
+
+            case .childProfile:
+                ChildProfileView(childVM: childVM, currentScreen: $currentScreen)
                     .transition(.opacity)
 
             case .growthReader:

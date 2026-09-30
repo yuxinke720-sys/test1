@@ -6,6 +6,7 @@ struct ProfileView: View {
     @AppStorage("hasSeenCreateGuide") private var hasSeenCreateGuide = true
     @ObservedObject var authVM: AuthViewModel
     @ObservedObject var settingsVM: SettingsViewModel
+    @ObservedObject var childVM: ChildProfileViewModel
     @Binding var currentScreen: AppScreen
 
     @State private var showDeleteAlert = false
@@ -23,6 +24,12 @@ struct ProfileView: View {
                         // MARK: - STORY
                         sectionTitle("STORY")
                         cardSection {
+                            SettingsRow(sfIcon: "figure.child", label: "Child Profile",
+                                        value: childVM.child.isComplete ? childVM.child.name : "Not set",
+                                        iconBg: Color(hex: "FFF5A0")) {
+                                currentScreen = .childProfile
+                            }
+                            Divider().padding(.leading, 58)
                             SettingsRow(sfIcon: "paintbrush.fill", label: "Story Preferences", iconBg: Color(hex: "FFF0EC"))
                         }
 
@@ -31,10 +38,6 @@ struct ProfileView: View {
                         sectionTitle("DEVELOPER")
                         cardSection {
                             SettingsRow(sfIcon: "wand.and.stars", label: "Skip Illustrations (Dev)", iconBg: Color(hex: "FFF5A0"), toggle: $settingsVM.skipImageGeneration, showChevron: false)
-                            Divider().padding(.leading, 58)
-                            SettingsRow(sfIcon: "hammer.fill", label: "AI Test", iconBg: Color(hex: "F5F2EE")) {
-                                currentScreen = .aiTest
-                            }
                         }
                         #endif
 
@@ -110,6 +113,21 @@ struct ProfileView: View {
 
     // MARK: - Section Helpers
 
+    // MARK: - Derived copy
+
+    /// The header name comes from the child profile. "Family" rather than a
+    /// parent role, since the app never asks who the account holder is.
+    private var displayName: String {
+        childVM.child.isComplete ? "\(childVM.child.name)'s Family" : "Set up your child"
+    }
+
+    private var childSubtitle: String {
+        let stories = storyVM.savedStories.count
+        let unit = stories == 1 ? "story" : "stories"
+        guard childVM.child.isComplete else { return "Name, gender and birthday" }
+        return "\(childVM.child.ageLabel) · \(stories) \(unit)"
+    }
+
     private func sectionTitle(_ title: String) -> some View {
         HStack {
             Text(title)
@@ -160,7 +178,7 @@ struct ProfileView: View {
 
                 Spacer().frame(height: 14)
 
-                Text("Emma's Mom")
+                Text(displayName)
                     .font(.system(size: 22, weight: .black))
                     .foregroundColor(Color(hex: "1E1C1A"))
 
@@ -194,11 +212,15 @@ struct ProfileView: View {
             HStack {
                 Text("MY CHILDREN").font(.system(size: 10, weight: .bold)).foregroundColor(Color(hex: "7A756E")).tracking(0.7)
                 Spacer()
-                HStack(spacing: 3) {
-                    Image(systemName: "plus").font(.system(size: 11, weight: .bold))
-                    Text("Add").font(.system(size: 13, weight: .bold))
+                Button { currentScreen = .childProfile } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: childVM.child.isComplete ? "pencil" : "plus")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(childVM.child.isComplete ? "Edit" : "Add").font(.system(size: 13, weight: .bold))
+                    }
+                    .foregroundColor(Color(hex: "FF8C6B"))
                 }
-                .foregroundColor(Color(hex: "FF8C6B"))
+                .buttonStyle(.plain)
             }.padding(.horizontal, 20)
 
             HStack(spacing: 12) {
@@ -209,14 +231,17 @@ struct ProfileView: View {
                     Circle().stroke(Color(hex: "FFD93D"), lineWidth: 3).frame(width: 56, height: 56)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(storyVM.childName).font(.system(size: 15, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
-                    Text("Age 2 · \(storyVM.savedStories.count) stories").font(.system(size: 11)).foregroundColor(Color(hex: "7A756E"))
+                    Text(childVM.child.isComplete ? childVM.child.name : "Add your child")
+                        .font(.system(size: 15, weight: .bold)).foregroundColor(Color(hex: "1E1C1A"))
+                    Text(childSubtitle).font(.system(size: 11)).foregroundColor(Color(hex: "7A756E"))
                 }
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .medium)).foregroundColor(Color(hex: "B8B3AC"))
             }
             .padding(14).background(Color(hex: "FFFFFF")).cornerRadius(16)
             .shadow(color: .black.opacity(0.08), radius: 8, y: 3).padding(.horizontal, 18)
+            .contentShape(Rectangle())
+            .onTapGesture { currentScreen = .childProfile }
         }
         .padding(.top, 16).padding(.bottom, 14)
     }
