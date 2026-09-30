@@ -1,11 +1,15 @@
+// CHANGED: Added @ObservedObject photoVM parameter.
+// CHANGED: onAppear now copies photoVM.childAppearanceDescription into storyVM before generation.
 import SwiftUI
 
 struct LoadingView: View {
     @ObservedObject var storyVM: StoryViewModel
+    @ObservedObject var photoVM: PhotoViewModel
     @Binding var currentScreen: AppScreen
 
     @State private var bookOffset: CGFloat = 0
     @State private var funFactIndex = 0
+    @State private var hasStarted = false
 
     private let funFacts = [
         "Children read to daily develop vocabularies 3x larger by age 5",
@@ -40,9 +44,30 @@ struct LoadingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             startFunFactRotation()
-            if !storyVM.isGenerating && storyVM.currentStory == nil && storyVM.errorMessage == nil {
-                Task { await storyVM.generateStory() }
+
+            // Only trigger generation once per view instance
+            guard !hasStarted else { return }
+            hasStarted = true
+
+            // Force-clear stale state from any previous (possibly interrupted) session.
+            storyVM.isGenerating = false
+            storyVM.currentStory = nil
+            storyVM.currentPage = 0
+            storyVM.errorMessage = nil
+
+            // Transfer photo-derived appearance into storyVM before generation starts
+            storyVM.childAppearanceDescription = photoVM.childAppearanceDescription
+
+            // Extract first photo as base64 reference for character consistency
+            if let firstImage = photoVM.selectedImages.first {
+                let resized = AIService.resizeImage(firstImage, maxSide: 512)
+                if let jpegData = resized.jpegData(compressionQuality: 0.85) {
+                    storyVM.referenceImageB64 = jpegData.base64EncodedString()
+                    print("[LoadingView] Reference image B64 length: \(storyVM.referenceImageB64.count)")
+                }
             }
+
+            Task { await storyVM.generateStory() }
         }
         .onChange(of: storyVM.currentStory) {
             if storyVM.currentStory != nil {
@@ -86,7 +111,7 @@ struct LoadingView: View {
                     status: storyVM.generationStage == .illustrating ? .current :
                         (storyVM.generationStage == .writing ? .pending : .done),
                     text: storyVM.generationStage == .illustrating ?
-                        "Illustrating (\(storyVM.illustrationProgress)/\(storyVM.pageCount.rawValue))" :
+                        "Illustrating (\(storyVM.illustrationProgress)/\(storyVM.pageCount))" :
                         "Illustrating pages"
                 )
                 stepRow(

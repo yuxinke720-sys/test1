@@ -1,5 +1,37 @@
 import SwiftUI
 
+// MARK: - Async Image Loader (disk-backed)
+
+/// Loads a story page image from the local file system without blocking the main thread.
+struct AsyncStoryImage: View {
+    let relativePath: String?
+    let fallbackEmoji: String
+
+    @State private var uiImage: UIImage?
+
+    var body: some View {
+        Group {
+            if let uiImage {
+                Image(uiImage: uiImage)
+                    .interpolation(.high)
+                    .resizable()
+                    .scaledToFill()
+            } else if relativePath != nil {
+                // Loading placeholder
+                ProgressView()
+            } else {
+                Image(systemName: fallbackEmoji)
+                    .font(.system(size: 72, weight: .light))
+                    .foregroundColor(Color(hex: "2C2417").opacity(0.5))
+            }
+        }
+        .task(id: relativePath) {
+            guard let path = relativePath else { return }
+            uiImage = await ImageStorageService.shared.loadImage(from: path)
+        }
+    }
+}
+
 struct StorybookView: View {
     @ObservedObject var storyVM: StoryViewModel
     @Binding var currentScreen: AppScreen
@@ -7,58 +39,74 @@ struct StorybookView: View {
     @State private var showOverlay = true
     @State private var showCompletion = false
     @State private var dragOffset: CGFloat = 0
+    @State private var showDeleteAlert = false
 
     var body: some View {
-        ZStack {
-            Color(hex: "0D0C18").ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                Color(hex: "F5EDD6").ignoresSafeArea()
 
-            if let story = storyVM.currentStory {
-                ZStack {
-                    pageContent(story: story)
+                if let story = storyVM.currentStory {
+                    ZStack {
+                        pageContent(story: story, geo: geo)
 
-                    HStack(spacing: 0) {
-                        Color.clear.contentShape(Rectangle())
-                            .onTapGesture { storyVM.previousPage() }
-                            .frame(maxWidth: .infinity)
-                        Color.clear.contentShape(Rectangle())
-                            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showOverlay.toggle() } }
-                            .frame(width: UIScreen.main.bounds.width * 0.2)
-                        Color.clear.contentShape(Rectangle())
-                            .onTapGesture {
-                                if storyVM.currentPage >= story.pages.count - 1 { withAnimation { showCompletion = true } }
-                                else { storyVM.nextPage() }
-                            }
-                            .frame(maxWidth: .infinity)
-                    }
-                    .gesture(
-                        DragGesture()
-                            .onChanged { dragOffset = $0.translation.width }
-                            .onEnded { v in
-                                if v.translation.width < -50 {
+                        HStack(spacing: 0) {
+                            Color.clear.contentShape(Rectangle())
+                                .onTapGesture { storyVM.previousPage() }
+                                .frame(maxWidth: .infinity)
+                            Color.clear.contentShape(Rectangle())
+                                .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showOverlay.toggle() } }
+                                .frame(width: geo.size.width * 0.2)
+                            Color.clear.contentShape(Rectangle())
+                                .onTapGesture {
                                     if storyVM.currentPage >= story.pages.count - 1 { withAnimation { showCompletion = true } }
                                     else { storyVM.nextPage() }
-                                } else if v.translation.width > 50 { storyVM.previousPage() }
-                                dragOffset = 0
-                            }
-                    )
+                                }
+                                .frame(maxWidth: .infinity)
+                        }
+                        .gesture(
+                            DragGesture()
+                                .onChanged { dragOffset = $0.translation.width }
+                                .onEnded { v in
+                                    if v.translation.width < -50 {
+                                        if storyVM.currentPage >= story.pages.count - 1 { withAnimation { showCompletion = true } }
+                                        else { storyVM.nextPage() }
+                                    } else if v.translation.width > 50 { storyVM.previousPage() }
+                                    dragOffset = 0
+                                }
+                        )
 
-                    if showOverlay {
-                        VStack {
-                            topBar(story: story)
-                            Spacer()
-                            bottomBar(story: story)
-                        }.transition(.opacity)
+                        if showOverlay {
+                            VStack(spacing: 0) {
+                                topBar(story: story, geo: geo)
+                                Spacer()
+                                bottomBar(story: story)
+                            }
+                            .transition(.opacity)
+                            .ignoresSafeArea(edges: .top)
+                        }
+                    }
+
+                    if showCompletion {
+                        completionOverlay(story: story, geo: geo).transition(.opacity)
                     }
                 }
-
-                if showCompletion {
-                    completionOverlay(story: story).transition(.opacity)
-                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { withAnimation { showOverlay = false } }
+        }
+        .alert("Delete Story", isPresented: $showDeleteAlert) {
+            Button("Delete", role: .destructive) {
+                if let story = storyVM.currentStory {
+                    storyVM.deleteStory(story)
+                }
+                currentScreen = storyVM.previousScreen
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this story? This action cannot be undone.")
         }
     }
 
@@ -72,74 +120,110 @@ struct StorybookView: View {
 
     // MARK: - Page Content
 
-    private func pageContent(story: Story) -> some View {
-        VStack(spacing: 0) {
+    private func pageContent(story: Story, geo: GeometryProxy) -> some View {
+        let imageHeight = geo.size.height * 0.55
+        let textHeight = geo.size.height * 0.45
+
+        return VStack(spacing: 0) {
+            // — Image area (55%) —
             ZStack {
-                LinearGradient(colors: [Color(hex: "1A1042"), Color(hex: "0D0C18")], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [Color(hex: "EDE0C4"), Color(hex: "F5EDD6")], startPoint: .top, endPoint: .bottom)
 
                 if storyVM.currentPage < story.pages.count {
                     let page = story.pages[storyVM.currentPage]
-                    Group {
-                        if let data = page.imageData, let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .clipped()
-                        } else {
-                            Image(systemName: page.emoji)
-                                .font(.system(size: 72, weight: .light))
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                    }
-                    .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
-                                            removal: .move(edge: .leading).combined(with: .opacity)))
-                    .id(storyVM.currentPage)
+                    AsyncStoryImage(relativePath: page.imageStoragePath, fallbackEmoji: page.emoji)
+                        .frame(width: geo.size.width, height: imageHeight)
+                        .clipped()
+                        .overlay(
+                            LinearGradient(
+                                colors: [.clear, Color(hex: "F5EDD6").opacity(0.2), Color(hex: "F5EDD6").opacity(0.95)],
+                                startPoint: .center,
+                                endPoint: .bottom
+                            )
+                        )
+                        .overlay(
+                            LinearGradient(
+                                colors: [Color(hex: "F5EDD6").opacity(0.6), .clear],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
+                        )
+                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
+                                                removal: .move(edge: .leading).combined(with: .opacity)))
+                        .id(storyVM.currentPage)
                 }
 
                 if showOverlay && storyVM.currentPage == 0 {
                     HStack {
-                        VStack(spacing: 4) { Image(systemName: "chevron.left").font(.system(size: 20, weight: .medium)).foregroundColor(.white.opacity(0.5)); Text("Prev").font(.system(size: 9)).foregroundColor(.white.opacity(0.35)) }
+                        VStack(spacing: 4) { Image(systemName: "chevron.left").font(.system(size: 20, weight: .medium)).foregroundColor(Color(hex: "2C2417").opacity(0.4)); Text("Prev").font(.system(size: 9)).foregroundColor(Color(hex: "2C2417").opacity(0.3)) }
                         Spacer()
-                        Text("Tap to turn pages").font(.system(size: 10, weight: .regular)).foregroundColor(.white.opacity(0.6))
-                            .padding(.horizontal, 14).padding(.vertical, 5).background(Color.white.opacity(0.15)).clipShape(Capsule())
+                        Text("Tap to turn pages").font(.system(size: 10, weight: .regular)).foregroundColor(Color(hex: "2C2417").opacity(0.5))
+                            .padding(.horizontal, 14).padding(.vertical, 5).background(Color(hex: "2C2417").opacity(0.08)).clipShape(Capsule())
                         Spacer()
-                        VStack(spacing: 4) { Image(systemName: "chevron.right").font(.system(size: 20, weight: .medium)).foregroundColor(.white.opacity(0.5)); Text("Next").font(.system(size: 9)).foregroundColor(.white.opacity(0.35)) }
+                        VStack(spacing: 4) { Image(systemName: "chevron.right").font(.system(size: 20, weight: .medium)).foregroundColor(Color(hex: "2C2417").opacity(0.4)); Text("Next").font(.system(size: 9)).foregroundColor(Color(hex: "2C2417").opacity(0.3)) }
                     }.padding(.horizontal, 20)
                 }
-            }.frame(maxHeight: .infinity)
+            }
+            .frame(height: imageHeight)
 
+            // — Text panel (45%) —
             if storyVM.currentPage < story.pages.count {
                 let page = story.pages[storyVM.currentPage]
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text("Page \(page.pageNumber) of \(story.pages.count)")
-                        .font(.system(size: 10, weight: .bold)).foregroundColor(.white.opacity(0.4))
-                    Text(page.text).font(.system(size: 14, weight: .bold)).foregroundColor(.white).lineSpacing(6)
-                        .id(storyVM.currentPage).transition(.opacity)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color(hex: "2C2417").opacity(0.6))
+                    Spacer().frame(height: 10)
+                    ScrollView(.vertical, showsIndicators: false) {
+                        Text(page.text)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color(hex: "2C2417"))
+                            .lineSpacing(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .id(storyVM.currentPage)
+                            .transition(.opacity)
+                    }
+                    Spacer()
                 }
-                .padding(.horizontal, 18).padding(.top, 20).padding(.bottom, 12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(LinearGradient(colors: [Color(hex: "0D0C18").opacity(0.96), Color(hex: "0D0C18").opacity(0.7), .clear],
-                                           startPoint: .bottom, endPoint: .top))
+                .padding(.horizontal, 18)
+                .padding(.top, 28)
+                .padding(.bottom, 24)
+                .frame(maxWidth: .infinity, minHeight: textHeight * 0.5, maxHeight: textHeight, alignment: .topLeading)
+                .background(
+                    ZStack {
+                        Color(hex: "F5EDD6")
+                        LinearGradient(
+                            colors: [Color(hex: "EDE0C4").opacity(0.4), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                )
             }
         }
+        .padding(.top, geo.safeAreaInsets.top + 8)
     }
 
     // MARK: - Reader Top Bar
 
-    private func topBar(story: Story) -> some View {
+    private func topBar(story: Story, geo: GeometryProxy) -> some View {
         HStack {
             Button { exitReading() } label: {
-                Image(systemName: "xmark").font(.system(size: 14, weight: .medium)).foregroundColor(.white)
-                    .frame(width: 32, height: 32).background(Color.white.opacity(0.15)).clipShape(Circle())
+                Image(systemName: "xmark").font(.system(size: 14, weight: .medium)).foregroundColor(Color(hex: "2C2417"))
+                    .frame(width: 32, height: 32).background(Color(hex: "2C2417").opacity(0.08)).clipShape(Circle())
             }
             Spacer()
-            Text(story.title).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+            Text(story.title).font(.system(size: 14, weight: .bold)).foregroundColor(Color(hex: "2C2417"))
             Spacer()
-            Image(systemName: "ellipsis").font(.system(size: 18, weight: .medium)).foregroundColor(.white.opacity(0.7))
+            Image(systemName: "ellipsis").font(.system(size: 18, weight: .medium)).foregroundColor(Color(hex: "2C2417").opacity(0.6))
         }
-        .padding(.horizontal, 16).padding(.top, 50).padding(.bottom, 12)
-        .background(LinearGradient(colors: [Color(hex: "0D0C18").opacity(0.85), .clear], startPoint: .top, endPoint: .bottom))
+        .padding(.horizontal, 16)
+        .padding(.top, geo.safeAreaInsets.top + 8)
+        .padding(.bottom, 12)
+        .background(
+            LinearGradient(colors: [Color(hex: "EDE0C4").opacity(0.9), .clear], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea(edges: .top)
+        )
     }
 
     // MARK: - Reader Bottom Bar
@@ -151,101 +235,129 @@ struct StorybookView: View {
                     if i == storyVM.currentPage {
                         RoundedRectangle(cornerRadius: 3).fill(Color(hex: "FFD93D")).frame(width: 18, height: 6)
                     } else {
-                        Circle().fill(Color.white.opacity(0.2)).frame(width: 6, height: 6)
+                        Circle().fill(Color(hex: "2C2417").opacity(0.15)).frame(width: 6, height: 6)
                     }
                 }
             }
             HStack(spacing: 24) {
                 readerAction(icon: storyVM.currentStory?.isFavorite == true ? "heart.fill" : "heart", label: "Save") { storyVM.toggleFavorite() }
                 readerAction(icon: "square.and.arrow.up", label: "Share") { currentScreen = .share }
-                readerAction(icon: "speaker.wave.2.fill", label: "Read") {}
+                readerAction(icon: "trash", label: "Delete", destructive: true) { showDeleteAlert = true }
                 readerAction(icon: "arrow.counterclockwise", label: "Redo") {}
             }
         }
         .padding(.horizontal, 18).padding(.vertical, 14)
-        .background(Color(hex: "0D0C18").opacity(0.9))
+        .background(Color(hex: "F5EDD6").opacity(0.97))
     }
 
-    private func readerAction(icon: String, label: String, action: @escaping () -> Void) -> some View {
+    private func readerAction(icon: String, label: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 2) {
-                Image(systemName: icon).font(.system(size: 18, weight: .medium)).foregroundColor(.white)
-                Text(label).font(.system(size: 8)).foregroundColor(.white.opacity(0.4))
+                Image(systemName: icon).font(.system(size: 18, weight: .medium))
+                    .foregroundColor(destructive ? .red : Color(hex: "2C2417"))
+                Text(label).font(.system(size: 8))
+                    .foregroundColor(destructive ? .red.opacity(0.6) : Color(hex: "2C2417").opacity(0.4))
             }
         }
     }
 
     // MARK: - Completion Overlay ("The End")
 
-    private func completionOverlay(story: Story) -> some View {
-        ZStack {
-            Color.black.opacity(0.7).ignoresSafeArea()
+    private func completionOverlay(story: Story, geo: GeometryProxy) -> some View {
+        ZStack(alignment: .topTrailing) {
+            // — Background —
+            AsyncStoryImage(
+                relativePath: story.pages.last?.imageStoragePath,
+                fallbackEmoji: story.pages.last?.emoji ?? "book.fill"
+            )
+            .frame(width: geo.size.width, height: geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom)
+            .clipped()
+            .overlay(
+                LinearGradient(
+                    colors: [Color(hex: "FFFEF5").opacity(0.0), Color(hex: "FFFEF5").opacity(0.97)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .ignoresSafeArea()
 
+            // — Close button (top right) —
+            Button {
+                showCompletion = false
+                exitReading()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(Color(hex: "5A5550"))
+                    .frame(width: 32, height: 32)
+                    .background(Color(hex: "1E1C1A").opacity(0.08))
+                    .clipShape(Circle())
+            }
+            .padding(.top, geo.safeAreaInsets.top + 8)
+            .padding(.trailing, 20)
+
+            // — Center content —
             VStack(spacing: 0) {
-                // Top bar
-                VStack(spacing: 0) {
-                    HStack {
-                        Button {
-                            showCompletion = false
-                            exitReading()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(Color(hex: "FF8C6B"))
-                                .frame(width: 36, height: 36)
-                        }
-                        Spacer()
-                        Text(story.title)
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(.white.opacity(0.85))
-                        Spacer()
-                        Color.clear.frame(width: 36, height: 36)
-                    }
-                    .padding(.horizontal, 18)
-                    .frame(height: 52)
-                    .background(
-                        LinearGradient(
-                            colors: [Color(hex: "1A1042").opacity(0.95), Color(hex: "0D0C18").opacity(0.85)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .shadow(color: Color(hex: "FFD93D").opacity(0.15), radius: 10, x: 0, y: 4)
-
-                    // Warm accent bottom border
-                    LinearGradient(
-                        colors: [Color(hex: "FFD93D").opacity(0.5), Color(hex: "FF8C6B").opacity(0.4)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(height: 1)
-                }
-
-                // Content
                 Spacer()
 
-                VStack(spacing: 16) {
-                    Image(systemName: "sparkles").font(.system(size: 44, weight: .medium)).foregroundColor(Color(hex: "FFD93D"))
-                    Text("The End!").font(.system(size: 32, weight: .black)).foregroundColor(.white)
-                    Text(story.title).font(.system(size: 16)).foregroundColor(.white.opacity(0.7))
-                    Spacer().frame(height: 8)
+                // Icon stack
+                ZStack {
+                    Image(systemName: "book.fill").font(.system(size: 44, weight: .light)).foregroundColor(Color(hex: "FFD93D").opacity(0.5)).offset(x: -18, y: 8)
+                    Image(systemName: "sparkles").font(.system(size: 52, weight: .medium)).foregroundColor(Color(hex: "FF8C6B"))
+                    Image(systemName: "star.fill").font(.system(size: 22, weight: .medium)).foregroundColor(Color(hex: "FFD93D").opacity(0.8)).offset(x: 28, y: -20)
+                }
+                .padding(.bottom, 20)
+
+                // Title
+                Text("The End")
+                    .font(.system(size: 38, weight: .black, design: .rounded))
+                    .foregroundColor(Color(hex: "1E1C1A"))
+                    .padding(.bottom, 8)
+
+                // Subtitle
+                Text("Every story makes you a little braver.")
+                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .foregroundColor(Color(hex: "7A756E"))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                // Breathing room
+                Spacer().frame(height: 60)
+
+                // Buttons
+                VStack(spacing: 12) {
+                    // Read Again
                     Button { storyVM.currentPage = 0; showCompletion = false } label: {
-                        Text("Read Again").font(.system(size: 15, weight: .bold)).foregroundColor(Color(hex: "FF8C6B"))
-                            .frame(maxWidth: .infinity).frame(height: 50).background(Color.white).clipShape(Capsule())
+                        Text("Read Again")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .background(Color(hex: "FF8C6B"))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
+
+                    // Save & Share
                     Button { storyVM.saveStory(); currentScreen = .share } label: {
-                        Text("Save & Share").font(.system(size: 15, weight: .bold)).foregroundColor(.white)
-                            .frame(maxWidth: .infinity).frame(height: 50)
-                            .background(LinearGradient(colors: [Color(hex: "FF8C6B"), Color(hex: "E86D4A")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .clipShape(Capsule()).shadow(color: Color(hex: "FF8C6B").opacity(0.4), radius: 10, y: 4)
+                        Text("Save & Share")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .background(Color(hex: "4A7C59"))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
+
+                    // Create Another Story
                     Button {
                         storyVM.resetForNewStory()
                         currentScreen = .home
                     } label: {
-                        Text("Create Another Story").font(.system(size: 13, weight: .regular)).foregroundColor(.white.opacity(0.6)).frame(height: 40)
+                        Text("Create Another Story")
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .foregroundColor(Color(hex: "7A756E"))
+                            .frame(height: 44)
                     }
-                }.padding(.horizontal, 40)
+                }
+                .padding(.horizontal, 32)
 
                 Spacer()
             }

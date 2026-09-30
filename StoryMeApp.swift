@@ -1,7 +1,40 @@
 import SwiftUI
+import FirebaseCore
+import FirebaseAuth
+import FirebaseFirestore
+import FirebaseFunctions
+
+// MARK: - App Delegate
+// Firebase must be configured at launch, before any service is touched.
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        FirebaseApp.configure()
+
+        #if DEBUG
+        // Point every service at the local emulators so debug runs never write to production.
+        Auth.auth().useEmulator(withHost: "127.0.0.1", port: 9099)
+        Functions.functions(region: "asia-northeast1")
+            .useEmulator(withHost: "127.0.0.1", port: 5001)
+
+        let db = Firestore.firestore()
+        db.useEmulator(withHost: "127.0.0.1", port: 8080)
+        let settings = db.settings
+        // In-memory cache only, so emulator data never lands in the on-disk production cache.
+        settings.cacheSettings = MemoryCacheSettings()
+        db.settings = settings
+
+        print("[Firebase] Emulators configured — Auth:9099, Functions:5001, Firestore:8080")
+        #endif
+
+        return true
+    }
+}
 
 @main
 struct StoryMeApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()

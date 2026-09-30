@@ -1,3 +1,6 @@
+// CHANGED: Replaced fake Task.sleep stub in analyzePhotos() with real AIService.analyzeChildAppearance call.
+// CHANGED: Added @Published childAppearanceDescription property to carry extracted features downstream.
+// CHANGED: Graceful degradation — on failure, sets analysisComplete = true with empty description.
 import SwiftUI
 import PhotosUI
 
@@ -8,6 +11,7 @@ class PhotoViewModel: ObservableObject {
     @Published var isAnalyzing = false
     @Published var analysisComplete = false
     @Published var errorMessage: String?
+    @Published var childAppearanceDescription: String = ""
 
     let maxPhotos = 10
     let minPhotos = 1
@@ -51,9 +55,17 @@ class PhotoViewModel: ObservableObject {
     func analyzePhotos() async {
         isAnalyzing = true
         errorMessage = nil
+        childAppearanceDescription = ""
 
-        // Simulate AI face-feature extraction
-        try? await Task.sleep(nanoseconds: 1_500_000_000)
+        do {
+            let description = try await AIService.shared.analyzeChildAppearance(from: selectedImages)
+            childAppearanceDescription = description
+            print("[PhotoVM] Appearance extracted: \(description)")
+        } catch {
+            print("[PhotoVM] Appearance analysis failed: \(error.localizedDescription)")
+            errorMessage = "Couldn't analyze photos. A default style will be used."
+            childAppearanceDescription = ""
+        }
 
         isAnalyzing = false
         analysisComplete = true
@@ -65,5 +77,6 @@ class PhotoViewModel: ObservableObject {
         isAnalyzing = false
         analysisComplete = false
         errorMessage = nil
+        childAppearanceDescription = ""
     }
 }

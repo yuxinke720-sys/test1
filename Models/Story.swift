@@ -46,15 +46,13 @@ enum StoryStyle: String, Codable, CaseIterable, Equatable {
         }
     }
 }
-enum PageCount: Int, CaseIterable {
-    case eight = 8
-    case ten = 10
-    case twelve = 12
-    var readTime: String {
-        switch self {
-        case .eight: return "~4 min"
-        case .ten: return "~5 min"
-        case .twelve: return "~6 min"
-        }
+enum PageCount {
+    static let min = 1
+    static let max = 12
+    static let defaultValue = 1
+
+    static func readTime(for count: Int) -> String {
+        let minutes = Swift.max(1, Int(ceil(Double(count) * 0.5)))
+        return "~\(minutes) min"
     }
 }

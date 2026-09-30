@@ -1,3 +1,5 @@
+// CHANGED: Added childAppearanceDescription property (set externally before generation).
+// CHANGED: generateStory() now passes childAppearanceDescription into AIService.shared.generateStory().
 import SwiftUI
 
 @MainActor
@@ -6,7 +8,7 @@ class StoryViewModel: ObservableObject {
     @Published var childName: String = "Emma"
     @Published var theme: String = ""
     @Published var selectedStyle: StoryStyle = .warmCozy
-    @Published var pageCount: PageCount = .ten
+    @Published var pageCount: Int = PageCount.defaultValue
     @Published var selectedThemeChip: String?
 
     // Generation state
@@ -29,12 +31,30 @@ class StoryViewModel: ObservableObject {
     // Saved stories
     @Published var savedStories: [Story] = []
 
-    // MARK: - Persistence Keys
-    private static let savedStoriesKey = "savedStories"
-    private static let lastStoryIDKey = "lastStoryID"
-    private static let lastPageKey = "lastPage"
+    // Child appearance (set from PhotoViewModel before generation)
+    var childAppearanceDescription: String = ""
+    /// Age/gender sentence from the child profile, merged with the photo-derived
+    /// appearance note before it reaches the prompt.
+    var childProfileNote: String = ""
+    // Reference photo base64 (set from PhotoViewModel before generation)
+    var referenceImageB64: String = ""
+
+    // MARK: - Per-user data isolation
+    var userUID: String = ""
+
+    private var savedStoriesKey: String { "savedStories_\(userUID)" }
+    private var lastStoryIDKey: String  { "lastStoryID_\(userUID)" }
+    private var lastPageKey: String     { "lastPage_\(userUID)" }
 
     init() {
+        // Do not load stories here — wait for configure(userUID:)
+    }
+
+    func configure(userUID: String) {
+        self.userUID = userUID
+        savedStories = []
+        currentStory = nil
+        currentPage = 0
         loadSavedStories()
     }
 
@@ -62,6 +82,12 @@ class StoryViewModel: ObservableObject {
         }
     }
 
+    private var combinedChildDescription: String {
+        [childProfileNote, childAppearanceDescription]
+            .filter { !$0.isEmpty }
+            .joined(separator: ". ")
+    }
+
     func generateStory() async {
         guard !isGenerating else {
             print("[StoryVM] generateStory() skipped — already generating")
@@ -73,17 +99,20 @@ class StoryViewModel: ObservableObject {
         illustrationProgress = 0
         errorMessage = nil
 
-        let totalPages = pageCount.rawValue
+        let totalPages = pageCount
 
         do {
             generationStage = .writing
             generationProgress = 5
 
-            let story = try await GeminiService.shared.generateStory(
+            let story = try await AIService.shared.generateStory(
                 childName: childName,
                 theme: theme,
                 style: selectedStyle,
                 pageCount: totalPages,
+                childAppearance: combinedChildDescription,
+                referenceImageB64: referenceImageB64,
+                userUID: userUID,
                 onPageIllustrated: { [weak self] completed in
                     Task { @MainActor in
                         guard let self else { return }
@@ -178,7 +207,7 @@ class StoryViewModel: ObservableObject {
         theme = ""
         selectedThemeChip = nil
         selectedStyle = .warmCozy
-        pageCount = .ten
+        pageCount = PageCount.defaultValue
         currentStory = nil
         currentPage = 0
         isGenerating = false
@@ -187,44 +216,127 @@ class StoryViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    // MARK: - Story Deletion
+
+    func deleteStory(_ story: Story) {
+        savedStories.removeAll { $0.id == story.id }
+        ImageStorageService.shared.deleteStoryImages(storyId: story.id, userUID: userUID)
+        persistSavedStories()
+    }
+
+    func deleteStory(at offsets: IndexSet) {
+        let storiesToDelete = offsets.map { savedStories[$0] }
+        for story in storiesToDelete {
+            ImageStorageService.shared.deleteStoryImages(storyId: story.id, userUID: userUID)
+        }
+        savedStories.remove(atOffsets: offsets)
+        persistSavedStories()
+    }
+
     // MARK: - Persistence
 
     private func loadSavedStories() {
-        guard let data = UserDefaults.standard.data(forKey: Self.savedStoriesKey),
-              let stories = try? JSONDecoder().decode([Story].self, from: data)
-        else { return }
+        guard !userUID.isEmpty else {
+            print("[StoryVM] No userUID set — skipping load")
+            return
+        }
+        guard let data = UserDefaults.standard.data(forKey: savedStoriesKey) else {
+            print("[StoryVM] No saved stories data in UserDefaults")
+            return
+        }
+
+        let stories: [Story]
+        do {
+            stories = try JSONDecoder().decode([Story].self, from: data)
+        } catch {
+            print("[StoryVM] ERROR decoding saved stories: \(error)")
+            return
+        }
+
+        print("[StoryVM] Loaded \(stories.count) stories from UserDefaults")
+
+        // Check if any story still carries legacy imageData that needs migration
+        let needsMigration = stories.contains { story in
+            story.pages.contains { $0.legacyImageData != nil }
+        }
+
         savedStories = stories
+
+        if needsMigration {
+            print("[StoryVM] Legacy imageData detected — starting migration")
+            Task { await migrateLegacyImageData() }
+        }
+    }
+
+    /// Migrates any legacy inline `imageData` to on-disk files and re-persists.
+    private func migrateLegacyImageData() async {
+        print("[StoryVM] Starting legacy imageData migration…")
+
+        // Work on a local copy to apply all changes atomically
+        var migratedStories = savedStories
+        var mutated = false
+
+        for storyIndex in migratedStories.indices {
+            let story = migratedStories[storyIndex]
+            for pageIndex in migratedStories[storyIndex].pages.indices {
+                let page = migratedStories[storyIndex].pages[pageIndex]
+                guard let legacyData = page.legacyImageData else { continue }
+
+                do {
+                    let path = try await ImageStorageService.shared.save(
+                        imageData: legacyData,
+                        storyId: story.id,
+                        pageNumber: page.pageNumber,
+                        userUID: userUID
+                    )
+                    migratedStories[storyIndex].pages[pageIndex].imageStoragePath = path
+                    migratedStories[storyIndex].pages[pageIndex].legacyImageData = nil
+                    mutated = true
+                    print("[StoryVM] Migrated page \(page.pageNumber) of story \(story.id.uuidString)")
+                } catch {
+                    print("[StoryVM] Migration failed for page \(page.pageNumber): \(error)")
+                }
+            }
+        }
+
+        if mutated {
+            // Assign the fully-migrated array back to the @Published property
+            // in one shot — this guarantees SwiftUI picks up the change.
+            savedStories = migratedStories
+            persistSavedStories()
+            print("[StoryVM] Legacy migration complete — \(savedStories.count) stories re-saved")
+        }
     }
 
     func persistSavedStories() {
         if let data = try? JSONEncoder().encode(savedStories) {
-            UserDefaults.standard.set(data, forKey: Self.savedStoriesKey)
+            UserDefaults.standard.set(data, forKey: savedStoriesKey)
         }
     }
 
     func persistReadingState() {
         if let story = currentStory {
-            UserDefaults.standard.set(story.id.uuidString, forKey: Self.lastStoryIDKey)
+            UserDefaults.standard.set(story.id.uuidString, forKey: lastStoryIDKey)
             // Save page progress back into the story in savedStories
             if let index = savedStories.firstIndex(where: { $0.id == story.id }) {
                 savedStories[index].lastReadPage = currentPage
                 persistSavedStories()
             }
         } else {
-            UserDefaults.standard.removeObject(forKey: Self.lastStoryIDKey)
+            UserDefaults.standard.removeObject(forKey: lastStoryIDKey)
         }
-        UserDefaults.standard.set(currentPage, forKey: Self.lastPageKey)
+        UserDefaults.standard.set(currentPage, forKey: lastPageKey)
     }
 
     /// Attempts to restore the last reading session. Returns `true` if successful.
     func restoreLastReading() -> Bool {
-        guard let idString = UserDefaults.standard.string(forKey: Self.lastStoryIDKey),
+        guard let idString = UserDefaults.standard.string(forKey: lastStoryIDKey),
               let id = UUID(uuidString: idString),
               let story = savedStories.first(where: { $0.id == id })
         else { return false }
 
         currentStory = story
-        let page = UserDefaults.standard.integer(forKey: Self.lastPageKey)
+        let page = UserDefaults.standard.integer(forKey: lastPageKey)
         currentPage = page < story.pages.count ? page : 0
         return true
     }
