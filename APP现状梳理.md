@@ -1,45 +1,4 @@
-# StoryMe 现状梳理
 
-> 时间：2026-10-06　分支：`main`　最近提交：`b6451e2`（工作区干净，已全部推送）
-> 规模：Swift 约 8,091 行（40 个文件）＋ 云函数 `functions/src/index.ts` 392 行
->
-> 上一版快照写于 2026-09-27、基于 `APIandDatabase` 分支。那之后 main 经历了一次批量代码回退事故和一轮修复，本文已按当前代码逐条核实重写。
-
----
-
-## 1. 一句话概括
-
-SwiftUI 做的 AI 儿童绘本 App：用邮箱登录，上传孩子照片，填孩子档案，选主题，经 Firebase 云函数调用**豆包**生成故事文字和插图。**所有绘本都只存在设备本地**，云端只负责登录和 AI 调用。
-
----
-
-## 2. 这一轮发生了什么（重要背景）
-
-**main 分支曾被批量回退。** 大约在 10-05 23:20，一批文件被退回到更早的版本，受害者包括：
-
-| 文件 | 回退后的症状 |
-|---|---|
-| `StoryMeApp.swift` | 丢掉整个 `AppDelegate`，没有 `FirebaseApp.configure()`，Firebase 完全没启动 |
-| `StoryViewModel.swift` | 丢掉 `configure(userUID:)`，并退回调用已废弃的 `GeminiService` |
-| `StoryPage.swift` | 退回 `imageData` 字段，与 `ImageStorageService` 的磁盘存储架构不兼容 |
-| `Story.swift` | `PageCount` 退回 8/10/12 固定枚举 |
-| `PhotoViewModel.swift` | 长相分析退回 `Task.sleep` 假实现 |
-| `ShareView` `StorybookView` `StorySetupView` `LoadingView` | 配套退回旧字段 |
-| `ViewModels/AuthViewModel.swift` `Views/LoginView.swift` | 文件直接从硬盘消失 |
-| `functions/src/` `package.json` `tsconfig.json` | 云函数源码从硬盘消失，只剩编译产物 `lib/index.js` |
-| `.firebaserc` `GoogleService-Info.plist` | 从硬盘消失 |
-
-一个反直觉的后果：**回退期间 App 反而"能打开"**，因为没有 `FirebaseApp.configure()` 就不会去找 `GoogleService-Info.plist`，不会崩——代价是 Firebase 根本没启动，生成功能本来就是坏的。
-
-全部已从 `APIandDatabase` 分支恢复（提交 `fed6164`）。恢复的云函数源码重新编译后与原 `lib/index.js` **逐字节相同**，确认无功能漂移。
-
-**同期完成的三件事：**
-
-1. **Gemini → 豆包迁移做完了。** 此前 `StoryViewModel` 还在调 `GeminiService` 直连 Google，而 `AIService.generateStory`（走云函数）写好了却从未被调用。现在主路径统一走云函数，`GeminiService.swift`（411 行）已删除。
-2. **iOS 端彻底零密钥。** 解除了 `Secrets.xcconfig` 的 `baseConfigurationReference`，删掉 `Info.plist` 里的 `GeminiAPIKey`。密钥只存在于 `functions/.env`。
-3. **工程文件修复。** `project.pbxproj` 曾带 18 行冲突标记被推上 GitHub，任何人克隆后 Xcode 都打不开；另外缺整块 SPM 依赖声明和 `PBXFrameworksBuildPhase`，以及 5 个文件未登记进编译阶段。已全部补齐，`xcodebuild` 实测 **BUILD SUCCEEDED**。
-
----
 
 ## 3. 页面与跳转
 
