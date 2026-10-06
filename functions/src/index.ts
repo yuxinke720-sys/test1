@@ -7,13 +7,25 @@ const DOUBAO_CHAT_URL =
 const DOUBAO_IMAGE_URL =
   "https://ark.cn-beijing.volces.com/api/v3/images/generations";
 
-// Model endpoint IDs — read from .env
-const DOUBAO_MODEL =
-  process.env.DOUBAO_MODEL_ID ?? "ep-20260409191516-m6xw9";
-const DOUBAO_VISION_MODEL =
-  process.env.DOUBAO_VISION_MODEL_ID ?? "ep-20260409191516-m6xw9";
-const DOUBAO_IMAGE_MODEL =
-  process.env.DOUBAO_IMAGE_MODEL_ID ?? "ep-20260409190549-2d5wv";
+// Model endpoint IDs — read from .env, no defaults.
+// An unset value must fail loudly rather than silently hit someone else's endpoint.
+const DOUBAO_MODEL = process.env.DOUBAO_MODEL_ID ?? "";
+const DOUBAO_VISION_MODEL = process.env.DOUBAO_VISION_MODEL_ID ?? "";
+const DOUBAO_IMAGE_MODEL = process.env.DOUBAO_IMAGE_MODEL_ID ?? "";
+
+/** Treats an unset *or* blank env var as missing. `??` alone would let "" through. */
+const requireEnv = (value: string, name: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "your_api_key_here") {
+    logger.error(`${name} is not configured — see functions/.env.example`);
+    throw new HttpsError(
+      "failed-precondition",
+      `Server config missing: ${name}. Copy functions/.env.example to ` +
+        "functions/.env and fill in your Volcengine Ark key and endpoint IDs."
+    );
+  }
+  return trimmed;
+};
 
 interface GenerateStoryRequest {
   childName: string;
@@ -103,7 +115,7 @@ export const generateStory = onCall(
           "Authorization": `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: DOUBAO_MODEL,
+          model: requireEnv(DOUBAO_MODEL, "DOUBAO_MODEL_ID"),
           messages: [
             {role: "system", content: systemPrompt},
             {role: "user", content: userPrompt},
@@ -221,7 +233,7 @@ export const analyzeAppearance = onCall(
           "Authorization": `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: DOUBAO_VISION_MODEL,
+          model: requireEnv(DOUBAO_VISION_MODEL, "DOUBAO_VISION_MODEL_ID"),
           messages: [{role: "user", content: contentParts}],
           max_tokens: 200,
         }),
@@ -295,9 +307,11 @@ export const generateImage = onCall(
       );
     }
 
-    // Image model uses its own API key
+    // Image model may use its own API key; a blank value falls back to the
+    // shared one, so sharing a single key means leaving this line empty.
     const apiKey =
-      process.env.DOUBAO_IMAGE_API_KEY ?? process.env.VOLCENGINE_API_KEY;
+      (process.env.DOUBAO_IMAGE_API_KEY ?? "").trim() ||
+      (process.env.VOLCENGINE_API_KEY ?? "").trim();
     if (!apiKey || apiKey === "your_api_key_here") {
       logger.error("Image API key is not configured");
       throw new HttpsError(
@@ -337,7 +351,7 @@ export const generateImage = onCall(
           "Authorization": `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: DOUBAO_IMAGE_MODEL,
+          model: requireEnv(DOUBAO_IMAGE_MODEL, "DOUBAO_IMAGE_MODEL_ID"),
           messages: messages,
           response_format: "b64_json",
         }),

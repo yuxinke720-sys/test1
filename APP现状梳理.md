@@ -81,11 +81,11 @@ App (AIService.swift)  →  Firebase 云函数 (asia-northeast1)  →  豆包 (a
 | `generateStory` | 生成 `{title, pages[{text, imageDescription, emoji}]}` | 豆包文字模型 |
 | `generateImage` | 每页画一张图，带参考照片 | 豆包画图模型 |
 
-- 密钥在 `functions/.env`（已 gitignore，另有 `.env.example` 模板入库）。
+- 密钥在 `functions/.env`（已 gitignore，另有 `.env.example` 模板入库）。三个 `ep-` 接入点 ID 没有默认值，未配置时 `requireEnv()` 直接抛 `Server config missing`；`DOUBAO_IMAGE_API_KEY` 留空会回落到 `VOLCENGINE_API_KEY`。
 - 接口是 **OpenAI 兼容格式**（`/chat/completions`、`messages`、`choices[0].message.content`），所以换到别家 OpenAI 兼容的服务只需改 URL 和模型 ID。
 - **Debug 下三个服务全部指向本机模拟器**：Auth 9099、Functions 5001、**Firestore 8080（新增）**，见 [StoryMeApp.swift](StoryMeApp.swift)。Firestore 另外设成 `MemoryCacheSettings()`，避免模拟器数据落进生产磁盘缓存。真机上连不上。
 - 需要先启动 `npx firebase emulators:start --import=functions/saved_data --export-on-exit=functions/saved_data`。
-- **跳过插图开关**：`AppConfig.skipImageGeneration`，Debug 下由个人页 DEVELOPER 区控制，默认跳过；Release 永远画图。
+- **跳过插图开关**：`AppConfig.skipImageGeneration`，Debug 下由个人页 DEVELOPER 区控制，**默认跳过**（新人第一次生成会只有文字没有图，容易误判为故障，README 已写明）；Release 永远画图。
 - 插图并发请求；某页失败就静默没图，只打印一行日志。
 - App 端把所有错误归成 `apiError`，服务端具体错误信息丢失。
 - 模板流程**不做长相分析**，也**不用模板自带文字**。

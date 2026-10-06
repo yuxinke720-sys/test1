@@ -42,7 +42,9 @@ App 必须连你自己的 Firebase 项目，本仓库不包含任何可共用的
 3. 下载 `GoogleService-Info.plist`，拖进 Xcode 项目根目录
    - 弹窗里勾选 **Copy items if needed** 和 **Add to targets: StoryMe**
    - 必须通过 Xcode 拖拽，光放进文件夹不会被打包，运行时 `FirebaseApp.configure()` 会抛异常崩溃
-4. 控制台里启用 **Authentication**（邮箱/密码登录方式）和 **Firestore**
+4. 控制台里启用 **Authentication**，登录方式勾选 **电子邮件/密码**
+
+> 不需要启用 Firestore。依赖虽然链接了，但目前没有任何业务代码读写云端 Firestore，绘本数据全在设备本地。
 
 该文件已被 `.gitignore` 忽略，不会误传。
 
@@ -67,6 +69,8 @@ cp .env.example .env
 接入点在**在线推理 → 自定义推理接入点**创建，ID 形如 `ep-20260409191516-m6xw9`。**状态必须是「运行中」**，显示「已停止」时调用会返回 `InvalidEndpoint.ClosedEndpoint`，表现为 App 里的 "Failed to generate story"。
 
 推荐模型：文本和视觉用 Doubao-Seed 系列（支持多模态，两个变量可填同一个接入点），文生图用 Doubao-Seedream 系列。
+
+三个 `ep-` 接入点 ID **没有默认值**，留空会直接报 `Server config missing: DOUBAO_xxx_MODEL_ID`。`DOUBAO_IMAGE_API_KEY` 是唯一可以留空的，留空时回落到 `VOLCENGINE_API_KEY`。
 
 ### 4. 加 Firebase SDK 依赖
 
@@ -113,6 +117,21 @@ npx firebase emulators:start --import=functions/saved_data --export-on-exit=func
 [Firebase] Emulators configured — Auth:9099, Functions:5001, Firestore:8080
 ```
 
+### 6. 第一次进 App：先注册一个账号
+
+Debug 下登录走的是**本机 Auth 模拟器**，里面一开始是空的，没有任何账号。在登录页点 **Sign Up** 注册即可：
+
+- 不需要真实邮箱，`test@test.com` 这类就行
+- 密码至少 6 位
+
+账号存在 `functions/saved_data/`，按 Ctrl+C 正常退出模拟器时会导出保存，下次 `--import` 带回来。强杀终端则丢失。
+
+### 7. 打开插图开关
+
+**Debug 构建默认跳过插图生成**（`AppConfig.skipImageGeneration` 在 Debug 下默认 `true`，为了省 token）。所以第一次生成出来的绘本只有文字、没有图，这是预期行为，不是故障。
+
+要看插图，去 **Profile → DEVELOPER → Skip Illustrations (Dev)** 把开关**关掉**。Release 构建永远生成插图，不受这个开关影响。
+
 生成失败时，去 <http://127.0.0.1:4000> → Functions → Logs 看云函数返回的真实错误。App 界面上只显示笼统的失败提示。
 
 ## 开发
@@ -150,4 +169,4 @@ functions/src/index.ts     云函数：generateStory / generateImage / analyzeAp
 
 ## 费用提示
 
-生成一本绘本会调用一次文本模型加若干次文生图，文生图是主要成本。调试时可在 **Profile → Developer → Skip Illustrations (Dev)** 打开跳过插图的开关（仅 Debug 构建可见）。
+生成一本绘本会调用一次文本模型加若干次文生图，文生图是主要成本。**Debug 下默认跳过插图**以省 token，开关在 **Profile → DEVELOPER → Skip Illustrations (Dev)**（仅 Debug 可见）。Release 构建永远生成插图。页数在故事设置页可调 1–12，页数越多插图越多。
