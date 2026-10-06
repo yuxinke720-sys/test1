@@ -4,7 +4,7 @@
 
 ---
 
-## 3. 页面与跳转
+## 1. 页面与跳转
 
 **没有用 NavigationStack，也没有用 TabView。** 全靠枚举 `AppScreen`（[ContentView.swift](ContentView.swift) 第 3–21 行）加一个大 `switch` 切换。每个页面拿到 `currentScreen` 的绑定，赋值就算跳转。当前页面记在 `@AppStorage("lastScreen")`，重启回到上次页面。
 
@@ -36,7 +36,7 @@
 
 ---
 
-## 4. 六个 ViewModel
+## 2. 六个 ViewModel
 
 全部在 `ContentView` 里创建，再手动往下传（没用 environmentObject）。
 
@@ -55,7 +55,7 @@
 
 ---
 
-## 5. 数据存在哪
+## 3. 数据存在哪
 
 | 数据 | 位置 | 是否上云 |
 |---|---|---|
@@ -73,7 +73,7 @@
 
 ---
 
-## 6. AI 生成链路
+## 4. AI 生成链路
 
 ```
 App (AIService.swift)  →  Firebase 云函数 (asia-northeast1)  →  豆包 (ark.cn-beijing.volces.com)
@@ -97,13 +97,13 @@ App (AIService.swift)  →  Firebase 云函数 (asia-northeast1)  →  豆包 (a
 
 ---
 
-## 7. 当前真正挡路的问题
+## 5. 当前真正挡路的问题
 
 **火山引擎接入点 `ep-20260409191516-m6xw9` 状态是「已停止」。** 调用返回 `InvalidEndpoint.ClosedEndpoint`，表现为 App 里的 "Failed to generate story"。这是从 09-27 至今一直没解决的原始问题，**代码侧已全部就绪，只差去火山方舟控制台启用接入点或新建一个把 ID 填进 `.env`**。
 
 ---
 
-## 8. 已知 Bug（均已复核仍存在）
+## 6. 已知 Bug（均已复核仍存在）
 
 1. **日历每天只能显示一本**：`storyDays` 返回 `[Int: Story]`（StoryViewModel:193），同一天多本时后者覆盖前者。首页的"N stories"其实数的是天数。
 2. **生成完不会自动保存**：全项目 4 处调 `saveStory()`，都在退出阅读器或点分享时。在阅读器里 App 被杀，故事丢失，插图变孤儿文件。
@@ -117,7 +117,7 @@ App (AIService.swift)  →  Firebase 云函数 (asia-northeast1)  →  豆包 (a
 
 ---
 
-## 9. 安全与上线风险
+## 7. 安全与上线风险
 
 - ⚠️ **云函数仍然不检查登录**：`functions/src/index.ts` 里没有任何 `request.auth` 或 App Check 校验，也没有限流。任何人拿到地址就能刷你的豆包额度。**上线前必须修。**
 - 云函数日志会打印包含孩子长相的完整提示词（儿童隐私）。
@@ -128,7 +128,7 @@ App (AIService.swift)  →  Firebase 云函数 (asia-northeast1)  →  豆包 (a
 
 ---
 
-## 10. 废代码与过时文件
+## 8. 废代码与过时文件
 
 - **写死的文字**：个人页的 "Free Plan"、"v1.0.0"。（"Emma's Mom" 和 "Age 2" 已改为读孩子档案）
 - **点了没反应的按钮**：个人页的 Story Preferences / Language / Rate / Privacy / Help；阅读器的 Redo；分享页的分享面板；"Save to Camera Roll" 实际只存到书架。
@@ -142,15 +142,15 @@ App (AIService.swift)  →  Firebase 云函数 (asia-northeast1)  →  豆包 (a
 
 ---
 
-## 11. 下一步优先级
+## 9. 下一步优先级
 
-1. **启用火山接入点**，让生成真正跑通（第 7 节）。
+1. **启用火山接入点**，让生成真正跑通（第 5 节）。
 2. **云函数加 `request.auth` 校验和 App Check** —— 公开仓库 + 无校验的云函数是当前最大风险。
 3. **更新 `firestore.rules`**，别留着一个过期的测试模式规则。
 4. **处理 `project.yml`**：补齐 Firebase 依赖，或直接删掉避免误用。
 5. **更新本地 `claude.md`** 为豆包 + 云函数架构（已不入库，但 agent 会读它）。
 6. **数据上云**：`Story` 存 Firestore、插图存 Storage。这能一并解决"换设备看不到"、"UserDefaults 太慢"、"没自动保存"三个问题。依赖已经链接好，一行没用。
-7. 修第 8 节的 bug；首次启动引导填孩子档案，去掉 "Emma" 占位。
+7. 修第 6 节的 bug；首次启动引导填孩子档案，去掉 "Emma" 占位。
 8. **导航改成 NavigationStack + TabView**，拆分 HomeView 和 ContentView。
 9. 孩子档案扩展成多孩子。
 
