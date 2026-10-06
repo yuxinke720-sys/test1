@@ -21,15 +21,50 @@ Firebase Cloud Functions (TypeScript, asia-northeast1)
 
 ## 环境要求
 
-| | 版本 |
-|---|---|
-| Xcode | 26.0+ |
-| iOS | 17.0+ |
-| Swift | 5.9 |
-| Node.js | 20 |
-| Firebase SDK | 12.19.2（自动解析） |
+只能在 **macOS** 上开发，因为需要 Xcode。
 
-还需要：Firebase 账号（免费额度够用）、火山引擎方舟账号（按量付费）。
+### 必须自己装的 4 样
+
+| 装什么 | 版本 | 从哪装 | 为什么 |
+|---|---|---|---|
+| **Xcode** | 26.0+ | Mac App Store（约 10GB） | 编译 iOS App，自带 Swift、模拟器、`xcodebuild` |
+| **iOS 模拟器运行时** | iOS 17.0+ | Xcode → Settings → Components | Xcode 16 起不再预装，要单独下载（数 GB） |
+| **Node.js** | 20（18+ 可用） | [nodejs.org](https://nodejs.org) 或 `brew install node@20` | 跑云函数和 Firebase 模拟器 |
+| **Java (JDK)** | 11+ | `brew install openjdk` 或 [adoptium.net](https://adoptium.net) | **Firestore 模拟器是 Java 写的**，没装它 `emulators:start` 会失败 |
+
+Java 这条最容易漏：它不是给 iOS 用的，是 Firebase 的 Firestore 和 Auth 模拟器本身跑在 JVM 上。
+
+### 不用单独装的
+
+| | 说明 |
+|---|---|
+| Git | macOS 自带（或装了 Xcode 就有） |
+| `firebase-tools` | 已在 `functions/package.json` 的 devDependencies 里，`npm install` 会装好；文中的 `npx firebase` 用的就是它 |
+| TypeScript | 同上，`npm install` 带 |
+| Firebase SDK (Swift) | Xcode 通过 SPM 自动下载，版本锁在 `Package.resolved`（12.19.2） |
+| Firebase CLI 全局安装 | 不需要，用 `npx` 即可 |
+
+### 还需要两个账号
+
+| 账号 | 费用 | 用来做什么 |
+|---|---|---|
+| Firebase（Google 账号即可） | 免费额度够用 | 建项目、拿 `GoogleService-Info.plist` |
+| 火山引擎方舟 | **按量付费，要实名认证和充值** | 豆包的文本 / 视觉 / 文生图模型 |
+
+火山引擎这条是真正的门槛——需要实名认证，而且文生图按张收费。
+
+### 不需要的
+
+- **不需要 Apple 开发者账号**（$99/年）。工程里 `DEVELOPMENT_TEAM` 是空的，在**模拟器**上跑不需要签名。只有想装到真机才需要 Apple ID 配个免费的个人团队。
+- **不需要真机**。而且真机反而跑不通——Debug 下连的是 `127.0.0.1` 的本机模拟器，手机访问不到你 Mac 的 localhost。
+
+### 磁盘占用预估
+
+```
+Xcode + iOS 运行时        ~25 GB
+functions/node_modules    ~366 MB
+Firebase Swift SDK 缓存   ~1 GB
+```
 
 ## 安装
 
