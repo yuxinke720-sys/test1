@@ -31,3 +31,8 @@ xcuserdata/
 # Agent 工具配置
 .claude/
 .agents/
+
+# 内部文档，不对外公开（含本机专属信息 / 已过期）
+HANDOFF.md
+claude.md
+CLAUDE.md
