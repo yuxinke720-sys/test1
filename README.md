@@ -43,6 +43,7 @@ Java 这条最容易漏：它不是给 iOS 用的，是 Firebase 的 Firestore �
 | TypeScript | 同上，`npm install` 带 |
 | Firebase SDK (Swift) | Xcode 通过 SPM 自动下载，版本锁在 `Package.resolved`（12.19.2） |
 | Firebase CLI 全局安装 | 不需要，用 `npx` 即可 |
+| 手动添加 Firebase 包 | **不需要**，声明已随工程提交，见下方第 4 步 |
 
 ### 还需要两个账号
 
@@ -107,25 +108,25 @@ cp .env.example .env
 
 三个 `ep-` 接入点 ID **没有默认值**，留空会直接报 `Server config missing: DOUBAO_xxx_MODEL_ID`。`DOUBAO_IMAGE_API_KEY` 是唯一可以留空的，留空时回落到 `VOLCENGINE_API_KEY`。
 
-### 4. 加 Firebase SDK 依赖
+### 4. 等 Firebase SDK 下载完
 
-在 Xcode 里：**File → Add Package Dependencies…**，粘贴
+**不需要手动添加 Firebase 包。** 依赖声明已经随工程提交了：`project.pbxproj` 里有包引用、6 个产品和 Frameworks 链接阶段，版本锁在 `Package.resolved`。
 
+打开 `StoryMe.xcodeproj` 后 Xcode 会自动开始下载解析，窗口顶部有进度。**第一次要 1–5 分钟**，Firebase 连带 13 个传递依赖（gRPC、abseil、leveldb、GoogleUtilities 等）一共约 1GB，别以为卡死了。
+
+> ⚠️ 不要去 **File → Add Package Dependencies** 再加一遍 —— 会产生重复的 package reference。
+
+如果 Xcode 没自动解析，或者报 `Unable to find module dependency: 'FirebaseCore'`，在终端手动触发：
+
+```bash
+xcodebuild -resolvePackageDependencies -project StoryMe.xcodeproj
 ```
-https://github.com/firebase/firebase-ios-sdk
-```
 
-只勾这 6 个产品，`Add to Target` 设为 `StoryMe`：
+跑完应该出现 `resolved source packages: ... Firebase ...`。这一步锁定的 6 个产品是：
 
 ```
 FirebaseAuth   FirebaseCore   FirebaseCrashlytics
 FirebaseFirestore   FirebaseFunctions   FirebaseStorage
-```
-
-第一次解析要几分钟。命令行等价操作：
-
-```bash
-xcodebuild -resolvePackageDependencies -project StoryMe.xcodeproj
 ```
 
 ### 5. 启动模拟器并运行

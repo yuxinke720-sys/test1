@@ -168,7 +168,7 @@ App (AIService.swift)  →  Firebase 云函数 (asia-northeast1)  →  豆包 (a
 | `GoogleService-Info.plist` | 下载自己 Firebase 项目的，用 Xcode 拖进项目 |
 | `.firebaserc` | 项目 ID 改成自己的 |
 
-Swift 代码一行不用改，iOS 端零密钥。`Package.resolved` 已入库，依赖版本锁定在 Firebase 12.19.2。
+Swift 代码一行不用改，iOS 端零密钥。SPM 依赖声明（包引用 + 6 个产品 + `PBXFrameworksBuildPhase`）和 `Package.resolved` 都已入库，克隆后 Xcode 自动解析，**不需要手动 Add Package Dependencies**（重复添加会产生两个 package reference）。
 
 **仓库里对外可见的文档只有两份**：[README.md](README.md)（安装说明）和本文件。`HANDOFF.md`、`claude.md` 已移出仓库。
 
